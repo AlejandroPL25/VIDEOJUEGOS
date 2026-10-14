@@ -30,6 +30,11 @@ var _sfx_players: Array[AudioStreamPlayer] = []
 var _music: AudioStreamPlayer
 var music_name := ""
 
+# ---- Modo de capturas (desarrollo): godot -- --shot=ruta.png --shot-frames=90 ----
+var shot_path := ""
+var shot_frames := 90
+var _frame_count := 0
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -48,6 +53,10 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = int(a.substr(8))
+		elif a.begins_with("--shot="):
+			shot_path = a.substr(7)
+		elif a.begins_with("--shot-frames="):
+			shot_frames = int(a.substr(14))
 
 
 # ----------------------------------------------------------------- Controles
@@ -209,3 +218,14 @@ func spawn_burst(parent: Node, pos: Vector2, color: Color, amount: int = 14,
 	parent.add_child(p)
 	p.global_position = pos
 	get_tree().create_timer(life + 0.4).timeout.connect(p.queue_free)
+
+
+## Guarda una captura de pantalla y cierra (solo con --shot). Útil para documentar el juego.
+func _process(_delta: float) -> void:
+	if shot_path == "":
+		return
+	_frame_count += 1
+	if _frame_count == shot_frames:
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(shot_path)
+		get_tree().quit()

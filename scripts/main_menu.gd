@@ -45,16 +45,15 @@ func _ready() -> void:
 	controls_panel.size = Vector2(260, 130)
 	controls_panel.visible = false
 	add_child(controls_panel)
-	var cl := _label("CONTROLES\n\nMover: A / D o flechas\nSaltar: ESPACIO (mantén = más alto)\nBola de fuego: X\nPausa: ESC / P\n\nPisa a los enemigos o quémalos.", Vector2(12, 8), 9, Color(1, 1, 1))
+	var cl := _label("CONTROLES\n\nMover: A / D o flechas\nSaltar: ESPACIO (mantén = más alto)\nBola de fuego: X\nPausa: ESC / P\n\nPisa a los enemigos o quémalos.", Vector2(12, 8), 9, Color(1, 1, 1), controls_panel)
 	cl.size = Vector2(236, 114)
-	controls_panel.add_child(cl)
 
 	var credit := _label("Proyecto escolar - Universidad Tecmilenio", Vector2(0, 258), 8, Color(0.8, 0.75, 0.85))
 	credit.size = Vector2(480, 12)
 	credit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
-func _label(text: String, pos: Vector2, size: int, color: Color) -> Label:
+func _label(text: String, pos: Vector2, size: int, color: Color, parent: Node = null) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.position = pos
@@ -62,7 +61,7 @@ func _label(text: String, pos: Vector2, size: int, color: Color) -> Label:
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.12))
 	l.add_theme_constant_override("outline_size", 3)
-	add_child(l)
+	(parent if parent != null else self).add_child(l)
 	return l
 
 

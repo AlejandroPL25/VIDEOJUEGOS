@@ -53,6 +53,14 @@ func _ready() -> void:
 	player.camera.limit_bottom = height_tiles * TILE
 	player.camera.reset_smoothing()
 
+	# Opción de desarrollo: --tp=x,y (en tiles) coloca a Embra para tomar capturas
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--tp="):
+			var parts := a.substr(5).split(",")
+			player.global_position = Vector2(float(parts[0]) * TILE + 8, float(parts[1]) * TILE + 8)
+			checkpoint_pos = player.global_position
+			player.camera.reset_smoothing()
+
 	hud.name_label.text = "%d. %s" % [Global.current_level + 1, data["name"]]
 	hud.set_sparks(0, sparks_in_level)
 	hud.show_message("Nivel %d: %s" % [Global.current_level + 1, data["name"]], 2.5)
