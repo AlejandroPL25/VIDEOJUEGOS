@@ -1,6 +1,7 @@
 extends Area2D
 class_name Goal
-## Goal.gd -- Hoguera Eterna: meta de cada nivel. En el nivel del jefe aparece al vencer a Gélido.
+## Goal.gd -- Altar: la meta de cada nivel (GDD). Al llegar a él, Embra lo enciende y el nivel termina.
+## En "El Altar" (último nivel) enciende la fogata ancestral y termina la historia.
 
 var level: Level
 var active := true
@@ -11,14 +12,14 @@ func _ready() -> void:
 	collision_layer = 0
 	collision_mask = 2
 	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = Global.make_frames("hearth.png", 24, 24, {
+	sprite.sprite_frames = Global.make_frames("altar.png", 24, 28, {
 		"off": {"frames": [0], "fps": 1.0},
 		"on": {"frames": [1], "fps": 1.0},
 	})
 	sprite.play("off")
 	add_child(sprite)
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(16, 20)
+	shape.size = Vector2(18, 24)
 	var cs := CollisionShape2D.new()
 	cs.shape = shape
 	add_child(cs)
@@ -26,18 +27,11 @@ func _ready() -> void:
 	z_index = -1
 
 
-## En el nivel del jefe la hoguera permanece oculta hasta que Gélido cae.
-func set_active(value: bool) -> void:
-	active = value
-	visible = value
-	set_deferred("monitoring", value)
-	if value:
-		Global.spawn_burst(get_parent(), global_position, Color(1.0, 0.8, 0.3), 20, 80.0, 0.8, 0.0)
-
-
 func _on_body_entered(body: Node) -> void:
 	if not active or not (body is Player):
 		return
+	active = false
 	sprite.play("on")
-	Global.spawn_burst(get_parent(), global_position + Vector2(0, -6), Color(1.0, 0.75, 0.25), 24, 90.0, 0.9, 40.0)
+	Global.spawn_burst(get_parent(), global_position + Vector2(0, -8), Color("F4A62A"), 28, 100.0, 0.9, 40.0)
+	Global.spawn_burst(get_parent(), global_position + Vector2(0, -8), Color("FFF3C4"), 16, 70.0, 0.7, 30.0)
 	level.complete_level()

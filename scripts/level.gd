@@ -1,8 +1,8 @@
 extends Node2D
 class_name Level
 ## Level.gd -- Construye un nivel a partir del mapa ASCII (ver level_data.gd / tools/make_levels.py)
-## y administra la partida: fondo, mapa de tiles, enemigos, objetos, cámara, puntos de control,
-## muerte/reaparición, final de nivel y modo de pruebas automáticas.
+## y administra la partida: fondo nocturno, plataformas, Rondines, zonas de fuego, chispas, puntos de
+## control, penalizaciones, final de nivel con mejor puntaje y modo de pruebas automáticas.
 
 const TILE := 16
 
@@ -16,7 +16,6 @@ var player: Player
 var hud: Hud
 var tilemap: TileMapLayer
 var goal_node: Goal = null
-var boss_node: Boss = null
 
 var checkpoint_pos := Vector2.ZERO
 var sparks_in_level := 0
@@ -34,6 +33,7 @@ func _ready() -> void:
 		grid.append(String(r))
 	height_tiles = grid.size()
 	width_tiles = String(grid[0]).length()
+	Global.start_level()
 
 	_build_background()
 	_build_tilemap()
@@ -63,6 +63,7 @@ func _ready() -> void:
 
 	hud.name_label.text = "%d. %s" % [Global.current_level + 1, data["name"]]
 	hud.set_sparks(0, sparks_in_level)
+	hud.set_score(0)
 	hud.show_message("Nivel %d: %s" % [Global.current_level + 1, data["name"]], 2.5)
 	Global.play_music(data["music"])
 
@@ -157,8 +158,7 @@ func _build_borders() -> void:
 
 
 func _spawn_entities() -> void:
-	var hint_index := 0
-	var hints: Array = data["hints"]
+	var fire_done := {}     # celdas de fuego ya agrupadas en una zona
 	for x in width_tiles:
 		for y in height_tiles:
 			var ch := cell_char(x, y)
@@ -166,36 +166,28 @@ func _spawn_entities() -> void:
 			var bottom := Vector2(x * TILE + 8, (y + 1) * TILE)
 			match ch:
 				"P":
-					checkpoint_pos = center + Vector2(0, 0)
+					checkpoint_pos = Vector2(bottom.x, bottom.y - Player.HALF_HEIGHT)
 				"o":
 					var p := Pickup.new()
-					p.kind = Pickup.Kind.SPARK
 					p.level = self
 					p.position = center
 					add_child(p)
 					sparks_in_level += 1
-				"h":
-					var hp := Pickup.new()
-					hp.kind = Pickup.Kind.HEART
-					hp.level = self
-					hp.position = center
-					add_child(hp)
-				"S":
-					var sp := Spike.new()
-					sp.theme = theme
-					sp.position = center
-					add_child(sp)
-				"w":
-					if not Global.autotest_no_enemies:
-						var w := Walker.new()
-						w.level = self
-						w.position = center
-						add_child(w)
-				"b":
-					if not Global.autotest_no_enemies:
-						var f := Flyer.new()
-						f.position = center
-						add_child(f)
+				"r":
+					var r := Rondin.new()
+					r.level = self
+					r.position = center
+					add_child(r)
+				"F":
+					if not fire_done.has(Vector2i(x, y)):
+						var n := 0
+						while cell_char(x + n, y) == "F":
+							fire_done[Vector2i(x + n, y)] = true
+							n += 1
+						var fz := FireZone.new()
+						fz.width_px = n * TILE
+						fz.position = Vector2(x * TILE + n * TILE / 2.0, (y + 1) * TILE)
+						add_child(fz)
 				"c":
 					var c := Checkpoint.new()
 					c.level = self
@@ -204,49 +196,53 @@ func _spawn_entities() -> void:
 				"G":
 					goal_node = Goal.new()
 					goal_node.level = self
-					goal_node.position = bottom + Vector2(0, -12)
+					goal_node.position = bottom + Vector2(0, -14)
 					add_child(goal_node)
-				"B":
-					boss_node = Boss.new()
-					boss_node.level = self
-					boss_node.position = bottom + Vector2(0, -16)
-					boss_node.patrol_left = (x - 24) * TILE
-					boss_node.patrol_right = (x + 5) * TILE
-					add_child(boss_node)
-				"t":
-					if hint_index < hints.size():
-						var s := SignHint.new()
-						s.text = hints[hint_index]
-						s.position = center
-						add_child(s)
-					hint_index += 1
 				"T":
 					var d := Sprite2D.new()
 					d.texture = Global.tex("decor_%d.png" % theme)
 					d.position = bottom - Vector2(0, d.texture.get_height() / 2.0)
 					d.z_index = -5
 					add_child(d)
-	if boss_node != null:
-		boss_node.defeated.connect(_on_boss_defeated)
-		if goal_node != null:
-			goal_node.set_active(false)
 
 
 # ---------------------------------------------------------------- Flujo de la partida
 func _physics_process(delta: float) -> void:
 	if level_done:
+		Global.set_danger(0.0)
 		return
 	elapsed += delta
 	Global.play_time += delta
+	_update_music_danger()
 	if Global.autotest and elapsed > 300.0:
 		autotest_fail("Tiempo agotado (el bot no llegó a la meta)")
 
 
-func on_player_died() -> void:
+## La música se intensifica cuando Embra está cerca de un Rondín o de una zona de fuego activa (GDD).
+func _update_music_danger() -> void:
+	if player == null or player.dead:
+		Global.set_danger(0.0)
+		return
+	var closest := 9999.0
+	for n in get_tree().get_nodes_in_group("danger"):
+		closest = minf(closest, (n as Node2D).global_position.distance_to(player.global_position))
+	for n in get_tree().get_nodes_in_group("hazard"):
+		if n.is_active():
+			closest = minf(closest, (n as Node2D).global_position.distance_to(player.global_position))
+	Global.set_danger(clampf(1.0 - (closest - 50.0) / 110.0, 0.0, 1.0))
+
+
+## kind = "hit" (enemigo o fuego) o "void" (vacío)
+func on_player_died(kind: String) -> void:
 	if Global.autotest:
-		autotest_fail("Embra murió en x=%d y=%d" % [int(player.global_position.x), int(player.global_position.y)])
+		autotest_fail("Embra murió (%s) en x=%d y=%d" % [kind, int(player.global_position.x), int(player.global_position.y)])
 		return
 	Global.deaths += 1
+	if kind == "hit":
+		var lost := Global.apply_hit_penalty()
+		hud.set_score(Global.level_score)
+		if lost > 0:
+			hud.show_message("-%d puntos" % lost, 1.8)
 	if Global.lose_life():
 		await get_tree().create_timer(1.2).timeout
 		Global.stop_music()
@@ -256,23 +252,18 @@ func on_player_died() -> void:
 		player.respawn(checkpoint_pos)
 
 
-func _on_boss_defeated() -> void:
-	hud.show_message("¡Gélido cayó! Enciende la Hoguera Eterna", 3.0)
-	if goal_node != null:
-		goal_node.set_active(true)
-
-
 func complete_level() -> void:
 	if level_done:
 		return
 	level_done = true
 	player.freeze()
 	Global.play_sfx("win")
-	var bonus := 200 + 50 * sparks_collected
-	Global.add_score(bonus)
+	var record := Global.finish_level()
+	hud.set_score(Global.level_score)
 	var last := Global.current_level + 1 >= LevelData.LEVELS.size()
-	var txt := "¡%s completado!\n\nChispas: %d / %d\nPuntos: %d\n\n%s" % [
-		data["name"], sparks_collected, sparks_in_level, Global.score,
+	var txt := "¡%s completado!\n\nChispas: %d / %d\nPuntaje del nivel: %d\nMejor puntaje del nivel: %d%s\n\n%s" % [
+		data["name"], sparks_collected, sparks_in_level, Global.level_score,
+		Global.best_scores[Global.current_level], "  ¡NUEVO RÉCORD!" if record else "",
 		"ENTER: ver el final" if last else "ENTER: siguiente nivel"]
 	hud.show_summary(txt)
 	if Global.autotest:

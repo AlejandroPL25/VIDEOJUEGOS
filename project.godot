@@ -5,8 +5,8 @@ config_version=5
 
 [application]
 
-config/name="Embra: La Llama Eterna"
-config/description="Plataformas 2D en pixel art. Embra, la última brasa, debe reavivar la Hoguera Eterna."
+config/name="EMBRA: Bosque de Brasas"
+config/description="Plataformas 2D en pixel art. Embra, una pequeña brasa, debe llegar al altar y reavivar la fogata ancestral del Bosque de Brasas."
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://assets/sprites/icon.png"
@@ -36,4 +36,4 @@ window/stretch/scale_mode="integer"
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-environment/defaults/default_clear_color=Color(0.1, 0.07, 0.13, 1)
+environment/defaults/default_clear_color=Color(0.105882, 0.121569, 0.231373, 1)

@@ -1,31 +1,33 @@
-# Embra: La Llama Eterna
+# EMBRA: Bosque de Brasas
 
-Plataformas 2D en pixel art hecho con **Godot 4.3** (GDScript). Embra, la última brasa de la aldea de Cenizal,
-debe cruzar cuatro zonas, recoger chispas y reavivar la Hoguera Eterna.
+Plataformas 2D en pixel art hecho con **Godot 4.3** (GDScript), basado en el GDD de la Fase 2.
+Embra, una pequeña brasa separada de la fogata ancestral, debe cruzar cuatro zonas, recoger chispas,
+esquivar a los Rondines y las zonas de fuego y humo, y llegar al altar para reavivar la fogata.
 
 ## Cómo jugar
-| Acción | Teclado |
+| Acción | Teclas |
 |---|---|
-| Mover | A / D o flechas |
-| Saltar | ESPACIO (mantén presionado para saltar más alto) |
-| Bola de fuego | X |
+| Mover | Flechas izquierda / derecha (o A / D) |
+| Saltar | ESPACIO |
 | Pausa | ESC o P |
-Pisa a los enemigos para vencerlos o quémalos con fuego. Los braseros guardan tu avance.
+- Chispas: suman puntos. Rondín o fuego activo: pierdes una vida y parte del puntaje del nivel.
+- Caer al vacío: pierdes una vida pero conservas el puntaje; reapareces en el último brasero.
+- Cada nivel guarda tu mejor puntaje (menú > Mejores puntajes).
 
-## Estructura del proyecto
-- `scripts/` código del juego (todo comentado): `global.gd` (autoload), `player.gd`, `level.gd`, enemigos, jefe, HUD, `bot.gd` (pruebas).
-- `scenes/` escenas mínimas (el nivel se construye por código a partir de los mapas).
-- `assets/sprites`, `assets/audio` arte y audio originales, generados con `tools/make_assets.py` y `tools/make_audio.py`.
-- `tools/make_levels.py` genera `scripts/level_data.gd` (mapas ASCII de los 4 niveles).
-- `docs/` bitácora, biblia del videojuego, reporte y plan de acción.
+## Niveles
+1. Bosque de Brasas (movimiento y salto) · 2. Cañón Humeante (fuego y humo) · 3. Ruinas de Carbón (enemigos + fuego) · 4. El Altar (todo junto)
+
+## Estructura
+- `scripts/` código del juego (todo comentado): `global.gd` (autoload), `player.gd`, `level.gd`, `rondin.gd`, `fire_zone.gd`, HUD, `bot.gd` (pruebas).
+- `assets/` arte y audio originales generados con `tools/make_assets.py` y `tools/make_audio.py`.
+- `tools/make_levels.py` genera los mapas ASCII (`scripts/level_data.gd`).
+- `docs/` bitácora, biblia del videojuego, reporte de pruebas y plan de acción.
 
 ## Abrir y ejecutar
-1. Instala Godot 4.3 (https://godotengine.org) y abre `project.godot`.
-2. Presiona F5 para jugar.
-3. Exportar: Proyecto > Exportar (ya hay presets para Windows, Linux y Web).
+Instala Godot 4.3, abre `project.godot` y presiona F5. Para exportar: Proyecto > Exportar (hay presets para Windows, Linux y Web).
 
 ## Pruebas automáticas
-`GODOT=/ruta/a/godot sh tools/run_tests.sh` ejecuta un bot que completa los 4 niveles (incluida la pelea contra el jefe).
+`GODOT=/ruta/a/godot sh tools/run_tests.sh`
 
 ## Control de versiones
-Cada etapa del desarrollo quedó en un commit (`git log --oneline`).
+Cada etapa quedó en un commit (`git log --oneline`).

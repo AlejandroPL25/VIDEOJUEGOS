@@ -1,39 +1,45 @@
 extends Node
 ## Global.gd (Autoload)
-## Estado compartido del juego (vidas, chispas, puntos, nivel actual), registro de controles,
-## reproductor de audio y utilidades que usan todas las escenas.
+## Estado compartido del juego según el GDD: vidas, chispas, puntaje del nivel, penalizaciones,
+## tabla de mejor puntaje por nivel (se guarda en disco), registro de controles y audio
+## (música de dos capas que se intensifica cerca de enemigos y fuego).
 
 signal lives_changed(lives: int)
-signal sparks_changed(total: int)
 
-const MAX_LIVES := 5
 const START_LIVES := 3
+const PENALTY_RATIO := 0.2         # al chocar con un Rondín o con fuego se pierde el 20 % del puntaje del nivel
+const SPARK_POINTS := 10
+const LEVEL_BONUS := 100
+const SAVE_PATH := "user://embra_scores.cfg"
 const SPRITES := "res://assets/sprites/"
 const AUDIO := "res://assets/audio/"
 
 # ---- Estado de la partida ----
 var lives := START_LIVES
-var sparks := 0          # chispas recogidas en toda la partida
-var score := 0
-var kills := 0
+var sparks := 0              # chispas recogidas en toda la partida
+var level_score := 0         # puntaje acumulado en el nivel actual
+var total_score := 0         # suma de los niveles ya completados
 var deaths := 0
 var play_time := 0.0
 var current_level := 0
+var best_scores: Array = [0, 0, 0, 0]    # mejor puntaje por nivel
 
-# ---- Modo de pruebas automáticas (bot). Se activa con:  godot -- --autotest ----
+# ---- Modo de pruebas automáticas (bot):  godot -- --autotest ----
 var autotest := false
-var autotest_no_enemies := false
+
+# ---- Modo de capturas (desarrollo):  godot -- --shot=ruta.png --shot-frames=90 ----
+var shot_path := ""
+var shot_frames := 90
+var _frame_count := 0
 
 var _tex_cache := {}
 var _sfx_cache := {}
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _music: AudioStreamPlayer
+var _danger: AudioStreamPlayer
 var music_name := ""
-
-# ---- Modo de capturas (desarrollo): godot -- --shot=ruta.png --shot-frames=90 ----
-var shot_path := ""
-var shot_frames := 90
-var _frame_count := 0
+var _danger_target := 0.0
+var _danger_value := 0.0
 
 
 func _ready() -> void:
@@ -41,15 +47,17 @@ func _ready() -> void:
 	_register_inputs()
 	for i in 8:
 		var p := AudioStreamPlayer.new()
-		p.bus = "Master"
 		add_child(p)
 		_sfx_players.append(p)
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = -9.0
 	add_child(_music)
+	_danger = AudioStreamPlayer.new()
+	_danger.volume_db = -80.0
+	add_child(_danger)
+	_load_scores()
 	var args := OS.get_cmdline_user_args()
 	autotest = "--autotest" in args
-	autotest_no_enemies = "--no-enemies" in args
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = int(a.substr(8))
@@ -60,13 +68,12 @@ func _ready() -> void:
 
 
 # ----------------------------------------------------------------- Controles
-## Registra las acciones del juego por código (teclado y control de consola).
+## Registra las acciones del juego por código: flechas/AD para mover y ESPACIO para saltar (GDD).
 func _register_inputs() -> void:
 	var keys := {
-		"move_left": [KEY_A, KEY_LEFT],
-		"move_right": [KEY_D, KEY_RIGHT],
-		"jump": [KEY_SPACE, KEY_W, KEY_UP, KEY_Z],
-		"fire": [KEY_X, KEY_J, KEY_SHIFT],
+		"move_left": [KEY_LEFT, KEY_A],
+		"move_right": [KEY_RIGHT, KEY_D],
+		"jump": [KEY_SPACE, KEY_UP, KEY_W],
 		"pause": [KEY_ESCAPE, KEY_P],
 		"confirm": [KEY_ENTER, KEY_KP_ENTER],
 		"menu": [KEY_M],
@@ -78,14 +85,8 @@ func _register_inputs() -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = k
 			InputMap.action_add_event(action, ev)
-	var pad := {
-		"jump": JOY_BUTTON_A,
-		"fire": JOY_BUTTON_X,
-		"pause": JOY_BUTTON_START,
-		"confirm": JOY_BUTTON_A,
-		"move_left": JOY_BUTTON_DPAD_LEFT,
-		"move_right": JOY_BUTTON_DPAD_RIGHT,
-	}
+	var pad := {"jump": JOY_BUTTON_A, "pause": JOY_BUTTON_START, "confirm": JOY_BUTTON_A,
+			"move_left": JOY_BUTTON_DPAD_LEFT, "move_right": JOY_BUTTON_DPAD_RIGHT}
 	for action in pad:
 		var jb := InputEventJoypadButton.new()
 		jb.button_index = pad[action]
@@ -98,32 +99,34 @@ func _register_inputs() -> void:
 		InputMap.action_add_event(action, jm)
 
 
-# ----------------------------------------------------------------- Partida
+# ----------------------------------------------------------------- Partida y puntajes
 func start_new_game() -> void:
 	lives = START_LIVES
 	sparks = 0
-	score = 0
-	kills = 0
+	level_score = 0
+	total_score = 0
 	deaths = 0
 	play_time = 0.0
 	current_level = 0
 	lives_changed.emit(lives)
-	sparks_changed.emit(sparks)
+
+
+## Se llama al comenzar (o reintentar) un nivel.
+func start_level() -> void:
+	level_score = 0
 
 
 func add_spark() -> void:
 	sparks += 1
-	score += 10
-	sparks_changed.emit(sparks)
+	level_score += SPARK_POINTS
 
 
-func add_score(points: int) -> void:
-	score += points
-
-
-func gain_life() -> void:
-	lives = min(lives + 1, MAX_LIVES)
-	lives_changed.emit(lives)
+## Penalización por choque con enemigo o fuego: se pierde una parte del puntaje del nivel.
+## Devuelve los puntos perdidos. (Caer al vacío NO descuenta puntos, según el GDD.)
+func apply_hit_penalty() -> int:
+	var lost := int(level_score * PENALTY_RATIO / 10.0) * 10
+	level_score -= lost
+	return lost
 
 
 ## Resta una vida. Devuelve true si ya no quedan (fin del juego).
@@ -131,6 +134,33 @@ func lose_life() -> bool:
 	lives -= 1
 	lives_changed.emit(max(lives, 0))
 	return lives <= 0
+
+
+## Cierra el nivel: suma bonus, actualiza el mejor puntaje y lo guarda. Devuelve true si es récord.
+func finish_level() -> bool:
+	level_score += LEVEL_BONUS
+	total_score += level_score
+	var record: bool = level_score > int(best_scores[current_level])
+	if record:
+		best_scores[current_level] = level_score
+		_save_scores()
+	return record
+
+
+func _load_scores() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE_PATH) == OK:
+		for i in best_scores.size():
+			best_scores[i] = int(cfg.get_value("mejores", "nivel_%d" % i, 0))
+
+
+func _save_scores() -> void:
+	if autotest:
+		return
+	var cfg := ConfigFile.new()
+	for i in best_scores.size():
+		cfg.set_value("mejores", "nivel_%d" % i, best_scores[i])
+	cfg.save(SAVE_PATH)
 
 
 # ----------------------------------------------------------------- Recursos
@@ -174,21 +204,39 @@ func play_sfx(sfx_name: String, volume_db: float = 0.0) -> void:
 			return
 
 
+func _loop_stream(file: String) -> AudioStreamWAV:
+	var s: AudioStreamWAV = load(AUDIO + file + ".wav")
+	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	s.loop_begin = 0
+	s.loop_end = s.data.size() / 2   # 16 bits, mono -> 2 bytes por muestra
+	return s
+
+
+## Reproduce la pista base y, si existe, su capa de peligro (misma duración, quedan sincronizadas).
 func play_music(track: String) -> void:
 	if autotest or track == music_name:
 		return
 	music_name = track
-	var s: AudioStreamWAV = load(AUDIO + track + ".wav")
-	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	s.loop_begin = 0
-	s.loop_end = s.data.size() / 2   # 16 bits, mono -> 2 bytes por muestra
-	_music.stream = s
+	_music.stream = _loop_stream(track)
 	_music.play()
+	_danger.stop()
+	_danger_value = 0.0
+	_danger_target = 0.0
+	_danger.volume_db = -80.0
+	if ResourceLoader.exists(AUDIO + track + "_danger.wav"):
+		_danger.stream = _loop_stream(track + "_danger")
+		_danger.play()
 
 
 func stop_music() -> void:
 	music_name = ""
 	_music.stop()
+	_danger.stop()
+
+
+## 0 = tranquilo, 1 = Embra está junto a enemigos o fuego activo (la música se intensifica).
+func set_danger(level: float) -> void:
+	_danger_target = clampf(level, 0.0, 1.0)
 
 
 # ----------------------------------------------------------------- Efectos
@@ -220,8 +268,12 @@ func spawn_burst(parent: Node, pos: Vector2, color: Color, amount: int = 14,
 	get_tree().create_timer(life + 0.4).timeout.connect(p.queue_free)
 
 
-## Guarda una captura de pantalla y cierra (solo con --shot). Útil para documentar el juego.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# Mezcla suave de la capa de peligro
+	_danger_value = move_toward(_danger_value, _danger_target, delta * 1.5)
+	if _danger.playing:
+		_danger.volume_db = linear_to_db(maxf(_danger_value, 0.0001)) - 5.0
+	# Captura de pantalla (solo con --shot)
 	if shot_path == "":
 		return
 	_frame_count += 1
