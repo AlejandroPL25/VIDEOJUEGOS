@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Genera los documentos del proyecto en Word (docs/*.docx):
+Genera los documentos del proyecto en Word (docs/*.docx) para "EMBRA: Bosque de Brasas":
   - Bitacora_de_Desarrollo.docx
   - Biblia_del_Videojuego.docx
   - Reporte_de_Pruebas.docx (una cuartilla + anexo con protocolo)
@@ -20,9 +20,11 @@ BASE = os.path.join(os.path.dirname(__file__), "..")
 DOCS = os.path.join(BASE, "docs")
 ART = os.path.join(DOCS, "biblia_art")
 IMG = os.path.join(DOCS, "img")
-MAROON = RGBColor(0x6D, 0x22, 0x37)
-GOLD = RGBColor(0xB0, 0x8D, 0x57)
+GDDM = os.path.join(DOCS, "gdd_media")
+NAVY = RGBColor(0x2E, 0x3A, 0x59)
+AMBER = RGBColor(0xC9, 0x7F, 0x17)
 GREY = RGBColor(0x55, 0x55, 0x55)
+HEAD_FILL = "2E3A59"
 
 
 # ------------------------------------------------------------------ utilidades
@@ -36,7 +38,7 @@ def new_doc(margins=1.0, base_size=11):
     st.font.size = Pt(base_size)
     st.element.rPr.rFonts.set(qn("w:eastAsia"), "Calibri")
     st.paragraph_format.space_after = Pt(6)
-    for name, size, color in (("Heading 1", 20, MAROON), ("Heading 2", 15, MAROON), ("Heading 3", 12.5, GOLD)):
+    for name, size, color in (("Heading 1", 20, NAVY), ("Heading 2", 15, NAVY), ("Heading 3", 12.5, AMBER)):
         h = d.styles[name]
         h.font.name = "Calibri"
         h.font.size = Pt(size)
@@ -93,14 +95,13 @@ def para(d, text="", bold=False, italic=False, size=None, color=None, align=None
 
 
 def rich(d, parts, style=None, after=None):
-    """parts = [(texto, {'b':True,'i':True}), ...]"""
     p = d.add_paragraph(style=style)
     for text, fmt in parts:
         r = p.add_run(text)
         r.bold = fmt.get("b", False)
         r.italic = fmt.get("i", False)
         if fmt.get("hl"):
-            r.font.highlight_color = 7   # amarillo
+            r.font.highlight_color = 7
     if after is not None:
         p.paragraph_format.space_after = Pt(after)
     return p
@@ -116,7 +117,7 @@ def bullet(d, text, bold_prefix=None):
     return p
 
 
-def table(d, header, rows, widths=None, font=9.5, head_fill="6D2237"):
+def table(d, header, rows, widths=None, font=9.5, head_fill=HEAD_FILL):
     t = d.add_table(rows=1, cols=len(header))
     t.style = "Table Grid"
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -155,8 +156,7 @@ def picture(d, path, width=6.3, caption=None):
     p.add_run().add_picture(path, width=Inches(width))
     p.paragraph_format.space_after = Pt(2)
     if caption:
-        c = para(d, caption, italic=True, size=9, color=GREY, align=WD_ALIGN_PARAGRAPH.CENTER, after=8)
-        return c
+        para(d, caption, italic=True, size=9, color=GREY, align=WD_ALIGN_PARAGRAPH.CENTER, after=8)
 
 
 def page_break(d):
@@ -164,102 +164,87 @@ def page_break(d):
 
 
 def title_block(d, title, subtitle, lines):
-    para(d, title, bold=True, size=26, color=MAROON, align=WD_ALIGN_PARAGRAPH.CENTER, after=2)
-    para(d, subtitle, italic=True, size=13, color=GOLD, align=WD_ALIGN_PARAGRAPH.CENTER, after=10)
+    para(d, title, bold=True, size=26, color=NAVY, align=WD_ALIGN_PARAGRAPH.CENTER, after=2)
+    para(d, subtitle, italic=True, size=13, color=AMBER, align=WD_ALIGN_PARAGRAPH.CENTER, after=10)
     for ln in lines:
         para(d, ln, size=10.5, color=GREY, align=WD_ALIGN_PARAGRAPH.CENTER, after=0)
     d.add_paragraph()
 
 
 def git_log():
-    out = subprocess.run(["git", "log", "--reverse", "--format=%h|%ad|%s", "--date=format:%d/%m/%Y %H:%M"],
+    out = subprocess.run(["git", "log", "--reverse", "--format=%h|%ad|%s", "--date=format:%d/%m/%Y"],
                          cwd=BASE, capture_output=True, text=True).stdout
-    rows = []
-    for ln in out.strip().splitlines():
-        h, dt, msg = ln.split("|", 2)
-        rows.append((h, dt, msg))
-    return rows
+    return [tuple(ln.split("|", 2)) for ln in out.strip().splitlines()]
 
 
 # ================================================================== BITÁCORA
 def bitacora():
     d = new_doc()
-    title_block(d, "Bitácora de desarrollo", "Embra: La Llama Eterna · prototipo funcional",
-                ["Motor: Godot 4.3 (GDScript)  ·  Control de versiones: Git", "Universidad Tecmilenio · Desarrollo de videojuegos"])
+    title_block(d, "Bitácora de desarrollo", "EMBRA: Bosque de Brasas · prototipo funcional",
+                ["Motor: Godot 4.3 (GDScript)  ·  Control de versiones: Git", "Universidad Tecmilenio · Proyecto integrador de videojuegos"])
 
     d.add_heading("1. Datos del proyecto", 1)
     table(d, ["Concepto", "Detalle"], [
-        ("Videojuego", "Embra: La Llama Eterna, plataformas 2D en pixel art"),
-        ("Motor y lenguaje", "Godot 4.3, GDScript (renderizador Compatibilidad, funciona también en navegador)"),
-        ("Alcance del prototipo", "4 niveles (3 zonas más la fortaleza del jefe), 2 tipos de enemigo, 1 jefe con dos fases, menú, pausa, game over y pantalla de victoria"),
-        ("Plataformas exportadas", "Windows (.exe), Linux (x86_64) y Web (HTML5)"),
-        ("Líneas de código", "Aprox. 1,900 líneas de GDScript, todas comentadas, más 4 herramientas en Python para generar arte, audio y niveles"),
-        ("Repositorio", "Git local con un commit por etapa (ver sección 4)"),
+        ("Videojuego", "EMBRA: Bosque de Brasas, plataformas 2D en pixel art (según el GDD de la Fase 2)"),
+        ("Motor y lenguaje", "Godot 4.3 con GDScript. Nota: el GDD planteó Unity; para esta actividad el prototipo se reconstruyó en Godot"),
+        ("Alcance del prototipo", "3 niveles progresivos más el nivel final \"El Altar\", Rondines, zonas de fuego y humo con partículas, penalizaciones, tabla de mejor puntaje por nivel, música y efectos de sonido"),
+        ("Plataformas exportadas", "Windows (.exe) como plataforma principal del GDD; también Linux y Web"),
+        ("Código", "Aprox. 1,500 líneas de GDScript, todas comentadas, más herramientas en Python para generar arte, audio y niveles"),
+        ("Repositorio", "Git local con un commit por etapa (sección 5)"),
     ], widths=[1.8, 4.7])
 
     d.add_heading("2. Cómo trabajé", 1)
-    para(d, "Mas que nada seguí la idea del diagrama de Gantt y del GDD: primero lo que hace que el juego sea jugable (movimiento y niveles), "
-            "luego los enemigos y el jefe, después la interfaz y al final las pruebas y la exportación. Cada etapa la cerré con un commit en Git "
-            "para poder regresar si algo se rompía, y todo el código lleva comentarios en español para entender qué hace cada parte sin tener que adivinar.")
-    para(d, "Siendo completamente honesto, una decisión importante fue generar el arte y el audio por código: los sitios de assets que quería usar "
-            "no estaban disponibles desde mi entorno de trabajo, entonces dibujé los sprites en pixel art con un script de Python y sinteticé los efectos y la "
-            "música tipo chiptune. Eso me dio arte original, sin problemas de licencia, y si quiero cambiarlo solo corro el script otra vez.")
+    para(d, "Mas que nada seguí el GDD y el diagrama de Gantt: primero las mecánicas básicas, luego enemigos y penalizaciones, el sistema de partículas, los niveles, el audio, "
+            "las pruebas y la compilación. Cada etapa la cerré con un commit en Git para poder regresar si algo se rompía, y todo el código lleva comentarios en español "
+            "para entender qué hace cada parte sin tener que adivinar.")
+    para(d, "Siendo completamente honesto, el arte y el audio los generé por código porque los sitios de assets no estaban disponibles desde mi entorno de trabajo: "
+            "los sprites están dibujados en pixel art con la paleta del GDD y siguiendo el boceto de Embra, y la música y los efectos se sintetizaron con ondas de 8 bits. "
+            "Entonces todo es original, sin problemas de licencia, y si quiero cambiar algo solo corro el script otra vez.")
 
-    d.add_heading("3. Registro de avances", 1)
+    d.add_heading("3. Plan (Gantt del GDD) contra lo realizado", 1)
+    picture(d, os.path.join(GDDM, "gantt_gdd.png"), 6.0, "Diagrama de Gantt del GDD (24 de agosto al 14 de octubre de 2026).")
+    para(d, "Las actividades 1 a 5 (investigación, reporte, propuesta, GDD y arte conceptual) ya estaban hechas en la fase anterior. Las actividades 6 a 12 son las que se plasman en esta bitácora. "
+            "Las fechas de la columna \"Fecha real\" son las de los commits del repositorio: el desarrollo en Godot se concentró entre el 13 y el 17 de octubre de 2026, "
+            "es decir, más comprimido y un poco después de lo que planteaba el Gantt.", italic=True)
+    table(d, ["Actividad del Gantt", "Fecha planeada", "Fecha real", "Entrada de bitácora"], [
+        ("6. Prototipo de mecánicas básicas", "14/09 al 18/09", "13/10 al 14/10", "Entradas 1 y 2"),
+        ("7. Enemigos y penalizaciones", "21/09 al 23/09", "14/10 y 17/10", "Entradas 2 y 4"),
+        ("8. Sistema de partículas (fuego/humo)", "24/09 al 25/09", "17/10", "Entrada 4"),
+        ("9. Diseño e integración de niveles", "28/09 al 02/10", "14/10 y 17/10", "Entradas 2 y 4"),
+        ("10. Integración de audio", "05/10 al 06/10", "17/10", "Entrada 4"),
+        ("11. Pruebas y balanceo", "07/10 al 09/10", "14/10 y 17/10", "Entradas 3 y 5"),
+        ("12. Pulido final y compilación", "12/10 al 14/10", "14/10 y 17/10", "Entradas 3 y 6"),
+    ], widths=[2.4, 1.2, 1.2, 1.7])
+
+    d.add_heading("4. Registro de avances", 1)
     entradas = [
-        ("Entrada 1 · Preparación del entorno (13/10/2026)",
-         "Instalé Godot 4.3 y las plantillas de exportación, y comprobé que el motor corre sin ventana (modo headless) para poder probar el juego de forma automática. "
-         "Revisé la estructura del proyecto: carpetas assets, scripts, scenes, tools y docs.",
-         "Los sitios de assets no estaban accesibles.", "Generar arte y audio originales con scripts (Pillow y el módulo wave).",
-         "5bc59d5"),
-        ("Entrada 2 · Arte y audio",
-         "Hice el generador de pixel art: Embra (9 cuadros de animación), Escarchín, Humoro, el jefe Gélido, 4 tilesets, púas, objetos, decoración, fondos con parallax y el logotipo. "
-         "También el generador de audio: 12 efectos de sonido y 5 pistas de música en loop.",
-         "Al principio los contornos de los sprites se veían desiguales.", "Agregué una función que dibuja el contorno de 1 px automáticamente alrededor de cada sprite.",
-         "5bc59d5"),
-        ("Entrada 3 · Diseño de niveles (14/10/2026)",
-         "Escribí un generador de mapas ASCII con funciones de suelo, huecos y plataformas que respetan los límites del salto (huecos de máximo 3 casillas y escalones de máximo 3). "
-         "Salieron 4 niveles: Bosque de Ceniza, Cuevas de Escarcha, Ruinas de Humo y Fortaleza Gélida.",
-         "Calcular a mano las posiciones de cada plataforma era muy propenso a errores.", "Usar posiciones relativas al inicio de cada tramo y validar con el bot (entrada 9).",
-         "9ec853a"),
-        ("Entrada 4 · Núcleo del juego",
-         "Configuré project.godot (pantalla de 480x270 con escala entera para que el pixel art no se deforme), el autoload Global con vidas, chispas, puntos, el registro de controles "
-         "por código (teclado y control de consola), el reproductor de audio y una función de partículas reutilizable.",
-         "—", "—", "0df11e9"),
-        ("Entrada 5 · Jugador",
-         "Programé a Embra: aceleración, salto variable (mantener = más alto), coyote time y buffer de salto para que los controles se sientan justos, bola de fuego con enfriamiento, "
-         "rebote al pisar enemigos y la estela de fuego y humo con dos sistemas de partículas.",
-         "El método amount_ratio no existe en CPUParticles2D y el juego no compilaba.", "Cambié a speed_scale para variar la intensidad de la estela.",
-         "deffb84"),
-        ("Entrada 6 · Enemigos y jefe",
-         "Escarchín (patrulla y da la vuelta en bordes con un RayCast2D), Humoro (vuela en ondas) y el jefe Gélido: patrulla la arena, lanza astillas bajas y altas, "
-         "entra en fase 2 con la mitad de la vida y convoca un Escarchín.",
-         "Al vencer enemigos con la bola de fuego aparecía el error 'Can't change this state while flushing queries'.", "Cambiar propiedades de física con set_deferred y agregar nodos con call_deferred cuando el código corre dentro de un callback de colisión.",
-         "4836b6b"),
-        ("Entrada 7 · Objetos e interfaz",
-         "Chispas, corazones de vida extra, púas, braseros de punto de control, la Hoguera Eterna como meta, letreros con consejos y el HUD (vidas, chispas, nombre del nivel, "
-         "mensajes, barra de vida del jefe, resumen de nivel y menú de pausa).",
-         "—", "—", "4d9b0de"),
-        ("Entrada 8 · Flujo del juego",
-         "El controlador de nivel construye todo el mapa desde el ASCII (TileMapLayer con colisiones, parallax, enemigos, objetos), maneja la muerte y reaparición, el final de nivel "
-         "con resumen, el menú principal, la pantalla de fin del juego y la de victoria.",
-         "—", "—", "b67b568"),
-        ("Entrada 9 · Pruebas automáticas",
-         "Hice un bot (scripts/bot.gd) que juega solo: camina a la derecha, salta ante paredes, huecos y púas, y en el nivel del jefe se detiene a distancia y dispara. "
-         "Con él verifiqué que los 4 niveles se pueden terminar, y de paso encontró varios errores reales:",
-         "(a) Embra se hundía en el suelo al iniciar. (b) Con Engine.time_scale las físicas dejaban de ser fiables. (c) El nivel 3 tenía un hueco de 4 casillas imposible de saltar. "
-         "(d) En el nivel 1 un salto sobre púas caía justo al borde de un hueco.",
-         "(a) Esperar 3 fotogramas de física a que el TileMapLayer cree sus colisiones. (b) Usar --fixed-fps 60, que corre más rápido que el tiempo real sin alterar la física. "
-         "(c) Reescribir el nivel con posiciones relativas. (d) Mover las púas.",
-         "fff8ac7"),
-        ("Entrada 10 · Capturas, exportación y README",
-         "Agregué un modo de capturas (--shot) para documentar el juego, el script tools/run_tests.sh, el README y los presets de exportación. Exporté Windows, Linux y Web "
-         "y comprobé que el ejecutable de Linux abre el menú y renderiza.",
-         "Un error en el menú: una etiqueta se agregaba al nodo equivocado y el panel de controles quedaba vacío.", "Pasar el padre como parámetro de la función que crea las etiquetas.",
-         "0e82896"),
-        ("Entrada 11 · Documentación",
-         "Biblia del videojuego (arte, narrativa, historia y personajes con bosquejos), reporte de pruebas, plan de acción y esta bitácora.",
-         "—", "—", "ver commits finales"),
+        ("Entrada 1 · Preparación del entorno (13/10/2026) · Gantt 6",
+         "Instalé Godot 4.3 y las plantillas de exportación y comprobé que el motor corre sin ventana (modo headless) para poder probar el juego de forma automática. "
+         "Armé la estructura del proyecto: assets, scripts, scenes, tools y docs, y los primeros generadores de arte y audio.",
+         "Los sitios de assets no estaban accesibles.", "Generar arte y audio originales con scripts (Pillow y el módulo wave).", "5bc59d5"),
+        ("Entrada 2 · Primera versión jugable (14/10/2026) · Gantt 6, 7 y 9",
+         "Construí el núcleo (autoload Global, controles, audio), el jugador con salto variable, coyote time y buffer de salto, un primer grupo de enemigos, el HUD, el controlador de nivel, "
+         "el menú, el game over y la victoria, y un generador de mapas ASCII para los niveles.",
+         "Embra se hundía en el suelo al iniciar; Engine.time_scale hacía que las físicas dejaran de ser fiables; aparecía el error 'Can't change this state while flushing queries'.",
+         "Esperar 3 fotogramas de física a que el TileMapLayer cree sus colisiones; usar --fixed-fps 60 en las pruebas; cambiar propiedades con set_deferred cuando el código corre dentro de un callback de colisión.",
+         "9ec853a, 0df11e9, deffb84, 4836b6b, 4d9b0de, b67b568"),
+        ("Entrada 3 · Pruebas automáticas y exportación (14/10/2026) · Gantt 11 y 12",
+         "Hice un bot (scripts/bot.gd) que juega solo y recorre los niveles hasta la meta; con él encontré errores reales de diseño, como un hueco de 4 casillas imposible de saltar. "
+         "También agregué un modo de capturas para documentar el juego, el README, el script tools/run_tests.sh y los presets de exportación; exporté Windows, Linux y Web.",
+         "Un hueco imposible en un nivel y una etiqueta del menú que se agregaba al nodo equivocado.", "Colocar plataformas con posiciones relativas al inicio de cada tramo y corregir el padre de la etiqueta.",
+         "fff8ac7, 0e82896"),
+        ("Entrada 4 · Alineación con el GDD (17/10/2026) · Gantt 7, 8, 9 y 10",
+         "Al revisar el GDD vi que mi primera versión incluía cosas que no estaban en el diseño (otros enemigos, una bola de fuego, un jefe, otra historia y otra paleta). "
+         "Entonces rehíce el juego siguiendo el GDD: Embra con el boceto del documento, el Rondín como único enemigo, las zonas de fuego y humo hechas con partículas que se encienden y se apagan, "
+         "las penalizaciones, la tabla de mejor puntaje por nivel, los cuatro niveles (Bosque de Brasas, Cañón Humeante, Ruinas de Carbón y El Altar) y la música de dos capas que se intensifica cerca de enemigos y fuego. "
+         "Quité lo que no estaba en el GDD (jefe, bola de fuego, corazones de vida extra y letreros, porque la meta de diseño pide que el Nivel 1 enseñe todo sin tutorial escrito).",
+         "En el nivel 2 el altar quedó fuera del mapa porque el ancho estaba mal calculado.", "El generador de niveles ahora recorta el ancho automáticamente al último tile usado.",
+         "ad26c16, 266f3fd"),
+        ("Entrada 5 · Pruebas con el diseño del GDD (17/10/2026) · Gantt 11",
+         "Volví a correr el bot en los 4 niveles ya con las reglas del GDD y todos se completaron. Revisé capturas del juego en una pantalla virtual para comprobar la paleta, los Rondines, las zonas de fuego y la interfaz.",
+         "—", "—", "ad26c16"),
+        ("Entrada 6 · Compilación y documentación (17/10/2026) · Gantt 12",
+         "Exporté de nuevo los ejecutables con el juego final y armé la biblia del videojuego, el reporte de pruebas, el plan de acción y esta bitácora.", "—", "—", "commits finales de documentación"),
     ]
     for titulo, hecho, problema, solucion, commit in entradas:
         d.add_heading(titulo, 3)
@@ -267,26 +252,45 @@ def bitacora():
         if problema != "—":
             rich(d, [("Problemas: ", {"b": True}), (problema, {})], after=3)
             rich(d, [("Solución: ", {"b": True}), (solucion, {})], after=3)
-        rich(d, [("Commit: ", {"b": True}), (commit, {"i": True})], after=6)
+        rich(d, [("Commits: ", {"b": True}), (commit, {"i": True})], after=6)
 
-    d.add_heading("4. Historial de versiones (Git)", 1)
+    d.add_heading("5. Historial de versiones (Git)", 1)
     para(d, "Salida de git log al momento de redactar esta bitácora (un commit por etapa):")
-    table(d, ["Commit", "Fecha", "Mensaje"], git_log(), widths=[0.8, 1.3, 4.4], font=9)
+    table(d, ["Commit", "Fecha", "Mensaje"], git_log(), widths=[0.8, 1.0, 4.7], font=9)
 
-    d.add_heading("5. Resultados de las pruebas automáticas", 1)
+    d.add_heading("6. Trazabilidad: GDD → prototipo", 1)
+    table(d, ["Elemento del GDD", "Cómo quedó en el prototipo", "Dónde"], [
+        ("Movimiento lateral con flechas y salto con barra espaciadora", "Aceleración corta, salto variable, coyote time y buffer de salto", "player.gd, global.gd"),
+        ("Recolección de chispas (monedas) que suma puntos", "+10 puntos por chispa; contador en el HUD", "pickup.gd, global.gd"),
+        ("Rondines: criaturas de carbón que patrullan una plataforma", "Caminan de un extremo a otro y dan la vuelta en bordes y paredes", "rondin.gd"),
+        ("Colisión con un Rondín: pierde una vida y parte del puntaje", "Se pierde 1 vida y el 20 % del puntaje del nivel", "rondin.gd, global.gd"),
+        ("Zonas de fuego y humo con partículas, mismo daño que un enemigo", "Alternan fuego activo, aviso con brasas y fase apagada; solo dañan cuando están activas", "fire_zone.gd"),
+        ("Caída al vacío: pierde una vida y reinicia en el último punto de control sin perder puntaje", "Reaparece en el último brasero; no se descuentan puntos", "player.gd, checkpoint.gd"),
+        ("Altar final de cada nivel; al terminar el juego se reenciende la fogata", "El altar termina el nivel; tras El Altar aparece la pantalla de victoria", "goal.gd, end_screen.gd"),
+        ("Sistema de partículas de fuego y humo", "Estela de Embra y llamas, brasas y humo de las zonas de fuego", "player.gd, fire_zone.gd"),
+        ("Música chiptune cálida que se intensifica con enemigos o fuego activo", "Cada nivel tiene pista base y capa de peligro sincronizada que se mezcla por cercanía", "global.gd, level.gd, tools/make_audio.py"),
+        ("Efectos: salto, chispa, daño y pérdida de vida", "4 efectos más punto de control, victoria, fin del juego y clic", "assets/audio"),
+        ("Tabla de mejor puntaje por nivel", "Se guarda en disco y se muestra en el menú y al terminar un nivel", "global.gd, main_menu.gd"),
+        ("3 niveles progresivos más El Altar", "Bosque de Brasas, Cañón Humeante, Ruinas de Carbón y El Altar", "tools/make_levels.py"),
+        ("Meta de diseño: entender todo sin tutorial escrito", "El Nivel 1 sigue el boceto del GDD y no tiene letreros", "tools/make_levels.py"),
+        ("Paleta y boceto de Embra", "Colores exactos del GDD y sprite de Embra basado en el boceto", "tools/make_assets.py"),
+        ("Meta de producto: versión compilada", "Ejecutable de Windows (y Linux/Web)", "build/"),
+    ], widths=[2.2, 3.0, 1.3], font=8.5)
+
+    d.add_heading("7. Resultados de las pruebas automáticas", 1)
     table(d, ["Nivel", "Zona", "Resultado del bot", "Tiempo de recorrido"], [
-        ("1", "Bosque de Ceniza", "Completado", "23.1 s"),
-        ("2", "Cuevas de Escarcha", "Completado", "27.4 s"),
-        ("3", "Ruinas de Humo", "Completado", "30.6 s"),
-        ("4", "Fortaleza Gélida (jefe)", "Completado: el bot derrota a Gélido y llega a la Hoguera", "28.7 s"),
-    ], widths=[0.6, 2.0, 2.8, 1.1])
-    para(d, "Importante: estas pruebas confirman que los niveles son físicamente completables, pero no dicen nada de la dificultad ni de la diversión. "
+        ("1", "Bosque de Brasas", "Completado", "14.9 s"),
+        ("2", "Cañón Humeante", "Completado", "23.7 s"),
+        ("3", "Ruinas de Carbón", "Completado", "30.0 s"),
+        ("4", "El Altar", "Completado", "29.9 s"),
+    ], widths=[0.6, 2.2, 2.4, 1.3])
+    para(d, "Importante: el bot es invulnerable, así que estas pruebas confirman que los niveles son físicamente completables, pero no dicen nada de la dificultad ni de la diversión. "
             "Para eso falta la prueba con una persona externa (ver el reporte de pruebas).", italic=True)
 
-    d.add_heading("6. Pendientes y siguientes pasos", 1)
+    d.add_heading("8. Pendientes", 1)
     for t in ["Hacer la prueba con al menos una persona externa y llenar el reporte de pruebas.",
-              "Ajustar dificultad, vidas y checkpoints según lo que se observe (plan de acción).",
-              "Revisar que las fechas y fases de esta bitácora coincidan con las del diagrama de Gantt entregado."]:
+              "Ajustar dificultad, vidas y puntos de control según lo que se observe (plan de acción).",
+              "Revisar que las fechas de esta bitácora coincidan con las que se entregarán junto al Gantt."]:
         bullet(d, t)
     d.save(os.path.join(DOCS, "Bitacora_de_Desarrollo.docx"))
 
@@ -295,142 +299,144 @@ def bitacora():
 def biblia():
     d = new_doc()
     picture(d, os.path.join(ART, "logo_hoja.png"), 5.8)
-    title_block(d, "Biblia del videojuego", "Embra: La Llama Eterna",
-                ["Plataformas 2D en pixel art · Godot 4.3", "Versión 1.0 del prototipo · Universidad Tecmilenio"])
+    title_block(d, "Biblia del videojuego", "EMBRA: Bosque de Brasas",
+                ["Videojuego de plataformas 2D en pixel art · Godot 4.3", "Versión 1.0 del prototipo · Universidad Tecmilenio"])
 
     d.add_heading("1. Resumen del juego", 1)
     table(d, ["Concepto", "Descripción"], [
-        ("Título", "Embra: La Llama Eterna"),
-        ("Género", "Plataformas 2D de acción con jefe final"),
-        ("Plataformas", "PC (Windows y Linux) y navegador web"),
-        ("Público", "Jugadores casuales de 8 años en adelante; partidas de 10 a 15 minutos"),
-        ("Premisa", "Una brasa diminuta debe cruzar cuatro zonas, vencer al Rey de Escarcha y reavivar la Hoguera Eterna que mantiene vivo al pueblo."),
-        ("Pilares de diseño", "Controles justos y ágiles · lectura clara a 16 px · calidez frente al frío · desafío que se aprende jugando"),
+        ("Nombre", "EMBRA: Bosque de Brasas"),
+        ("Tipo", "Videojuego de plataformas 2D (2D Platformer)"),
+        ("Género", "Plataformas / acción-aventura casual"),
+        ("Plataforma", "PC (Windows). El GDD plantea distribución en Steam"),
+        ("Clasificación", "PEGI 7 / ESRB E10+ (violencia de caricatura leve, sin sangre)"),
+        ("Estilo visual", "Pixel art 2D con paleta cálida de ámbar y fuego sobre fondos oscuros"),
+        ("Tipo de jugador", "Un jugador, perfil casual-core; partidas cortas con progresión y puntaje"),
+        ("Premisa", "Una pequeña brasa debe saltar de plataforma en plataforma, recolectar chispas y llegar al altar final para reavivar la fogata ancestral antes de que el bosque se apague."),
     ], widths=[1.5, 5.0])
-    d.add_heading("Mecánicas principales", 3)
-    table(d, ["Acción", "Control", "Reglas"], [
-        ("Mover", "A / D o flechas", "Aceleración corta; más control en el suelo que en el aire."),
-        ("Saltar", "ESPACIO (W, flecha arriba, Z)", "Salto variable: mantener presionado salta más alto. Margen de salto tras dejar un borde (coyote time) y buffer de salto."),
-        ("Bola de fuego", "X (J, Shift)", "Enfriamiento de 0.4 s y máximo 3 bolas en pantalla. Daña enemigos y al jefe."),
-        ("Pisotón", "Caer sobre un enemigo", "Vence al enemigo y rebota. Al jefe le quita 2 de vida."),
-        ("Vidas", "—", "3 vidas al inicio (máx. 5). Una herida apaga a Embra; reaparece en el último brasero."),
-        ("Puntos", "—", "Chispa +10 · Escarchín +50 · Humoro +75 · Gélido +1000 · bonus de nivel."),
-    ], widths=[1.1, 1.9, 3.5])
+    d.add_heading("Mecánicas", 3)
+    table(d, ["Mecánica", "Control", "Reglas"], [
+        ("Movimiento lateral y salto", "Flechas (o A/D) y ESPACIO", "Salto variable: mantener presionado salta más alto. Margen para saltar justo tras dejar un borde y buffer de salto."),
+        ("Recolección de chispas", "Tocar la chispa", "Equivalen a las monedas del prototipo original: +10 puntos y desaparecen."),
+        ("Colisión con Rondines", "—", "Pierdes una vida y el 20 % del puntaje del nivel."),
+        ("Zonas de fuego y humo", "—", "Solo dañan cuando el fuego está activo: mismo daño que un Rondín. Alternan fuego, aviso con brasas y fase apagada."),
+        ("Caída al vacío", "—", "Pierdes una vida, no pierdes puntos y reapareces en el último brasero."),
+        ("Puntaje", "—", "Chispas +10 por chispa, +100 al terminar el nivel. Se guarda el mejor puntaje de cada nivel."),
+    ], widths=[1.6, 1.4, 3.5])
 
     d.add_heading("2. Historia", 1)
-    para(d, "Cenizal es una aldea de piedra que vive al borde del Bosque de Ceniza. Desde antes de que nadie lo recuerde, en el centro del pueblo arde la Hoguera Eterna: "
-            "su calor mantiene lejos al invierno y sus chispas dan vida a todo lo que brilla en Cenizal.")
-    para(d, "Una noche sin luna, Gélido, el Rey de Escarcha, bajó de su Fortaleza Gélida con un ejército de Escarchines y robó la última chispa de la hoguera. "
-            "La llama se apagó, el frío cubrió los caminos y los Humoros, los fantasmas de las llamas que alguna vez se apagaron, comenzaron a rondar las ruinas.")
-    para(d, "Pero de entre las cenizas todavía tibias saltó una brasa tan pequeña que nadie la había visto: Embra. No sabe hablar y no sabe rendirse. "
-            "Su misión es llegar hasta la Fortaleza Gélida, recuperar la chispa y encender de nuevo la Hoguera Eterna.")
-    d.add_heading("Estructura en cuatro actos", 3)
-    table(d, ["Acto", "Zona", "Qué pasa", "Altar"], [
-        ("1", "Bosque de Ceniza", "Embra aprende a moverse, saltar y quemar. Encuentra a los primeros Escarchines y Humoros.", "Primer altar de la Hoguera Eterna"),
-        ("2", "Cuevas de Escarcha", "El frío de Gélida ya llegó hasta las cuevas: hay púas de hielo y más Humoros. Aparecen los braseros que guardan el avance.", "Segundo altar"),
-        ("3", "Ruinas de Humo", "Un templo antiguo de los guardianes de la llama. Los saltos son más exigentes y los Humoros vigilan desde arriba.", "Tercer altar"),
-        ("4", "Fortaleza Gélida", "Un último tramo helado y la pelea contra Gélido. Al vencerlo aparece la Hoguera principal.", "La Hoguera Eterna se enciende"),
-    ], widths=[0.5, 1.4, 3.3, 1.3])
+    para(d, "Embra es una pequeña brasa que se separó de la fogata ancestral que mantenía encendido el Bosque de Brasas. Sin su llama el bosque comienza a apagarse, "
+            "y los antiguos guardianes del bosque, los Rondines, pierden el control y empiezan a vagar de forma errática entre las plataformas.")
+    para(d, "Embra debe saltar de plataforma en plataforma, recolectar chispas para recuperar fuerza y llegar hasta el altar final para volver a encender la fogata "
+            "antes de que el bosque se apague por completo.")
+    para(d, "Para llegar al altar final tiene que atravesar cuatro lugares: el Bosque de Brasas donde nació, el Cañón Humeante donde el humo ya cubre los caminos, "
+            "las Ruinas de Carbón donde los Rondines son más numerosos y El Altar, donde arde la fogata ancestral.")
+    d.add_heading("Estructura en cuatro niveles", 3)
+    table(d, ["Nivel", "Lugar", "Qué introduce", "Meta"], [
+        ("1", "Bosque de Brasas", "Movimiento y salto, chispas, el primer Rondín y una zona de fuego, todo con el diseño del nivel (sin tutorial escrito).", "Altar del nivel 1"),
+        ("2", "Cañón Humeante", "Las zonas de fuego y humo, con más combinaciones y menos Rondines.", "Altar del nivel 2"),
+        ("3", "Ruinas de Carbón", "Enemigos y zonas de fuego juntos, con plataformas más estrechas y exigentes.", "Altar del nivel 3"),
+        ("4", "El Altar", "Combina todas las mecánicas antes de cerrar la historia.", "La fogata ancestral vuelve a arder"),
+    ], widths=[0.5, 1.5, 3.4, 1.1])
 
     d.add_heading("3. Narrativa", 1)
-    para(d, "El juego cuenta su historia sin diálogos largos: usa el entorno, los letreros y mensajes cortos para que el jugador entienda sin leer demasiado. "
-            "El tono es cálido y esperanzado, con un poco de humor suave; el frío es el antagonista y el fuego es la voz de Embra.")
+    para(d, "El juego cuenta su historia sin diálogos ni tutorial escrito: el diseño de los niveles y el entorno enseñan y narran. El tono es cálido y esperanzado, con un poco de ternura. "
+            "El frío y la oscuridad de la noche son el contexto, y el fuego es la voz de Embra.")
     d.add_heading("Recursos narrativos", 3)
     for pre, t in [("Embra no habla. ", "Se comunica con sus animaciones, su llama y los sonidos de sus saltos y sus chispas."),
-                   ("El entorno cuenta la historia. ", "El bosque pasa de tonos cálidos a hielo, humo y luego a la fortaleza: se ve cómo avanza el invierno de Gélido."),
-                   ("Letreros. ", "Pequeños carteles de madera enseñan los controles y dan pistas."),
-                   ("Mensajes en pantalla. ", "Anuncian cada nivel, los puntos de control, las vidas extra y el jefe."),
-                   ("Pantallas finales. ", "Una para la derrota y otra para la victoria con el resumen de la partida.")]:
+                   ("El entorno cuenta la historia. ", "El bosque, el cañón y las ruinas muestran cómo el humo y la oscuridad avanzan cuando falta la fogata; en El Altar aparecen columnas con braseros y el altar final."),
+                   ("El Nivel 1 es el tutorial. ", "Sigue el boceto del GDD: una zona de práctica, plataformas que suben, un Rondín por plataforma y una zona de fuego antes de la meta, de modo que el jugador aprende probando."),
+                   ("Mensajes cortos. ", "Aparecen al comenzar cada nivel, al activar un punto de control y al perder puntos."),
+                   ("Pantallas finales. ", "Una para el fin del juego y otra para la victoria con el resumen y la tabla de mejores puntajes.")]:
         bullet(d, t, pre)
     d.add_heading("Textos del juego", 3)
     table(d, ["Momento", "Texto"], [
-        ("Inicio del nivel 1", "Nivel 1: Bosque de Ceniza"),
-        ("Letrero 1", "Muévete con A / D o con las flechas"),
-        ("Letrero 2", "Salta con ESPACIO. Mantén presionado para saltar más alto"),
-        ("Letrero 3", "Salta sobre los enemigos para vencerlos"),
-        ("Letrero 4", "Presiona X para lanzar una bola de fuego"),
-        ("Cuevas de Escarcha", "Las púas lastiman: salta sobre ellas. Los braseros guardan tu avance"),
-        ("Cuevas de Escarcha", "Los Humoros vuelan en ondas: espera el momento y pasa por debajo"),
-        ("Punto de control", "¡Punto de control!"),
-        ("Vida extra", "¡Vida extra!"),
-        ("Antes del jefe", "Gélido guarda la última chispa. Pronto lo enfrentarás"),
-        ("Antes del jefe", "Dispárale con X y esquiva sus astillas: salta las bajas y quédate en el suelo ante las altas"),
-        ("Aparece el jefe", "¡Gélido, el Rey de Escarcha!"),
-        ("Fase 2 del jefe", "¡Gélido se enfurece!"),
-        ("Jefe vencido", "¡Gélido cayó! Enciende la Hoguera Eterna"),
-        ("Fin del juego", "La llama de Embra se apagó... pero una brasa nunca muere del todo."),
-        ("Victoria", "¡LA LLAMA ETERNA ARDE DE NUEVO! Embra reavivó la Hoguera Eterna y Cenizal volvió a brillar."),
+        ("Inicio de cada nivel", "Nivel 1: Bosque de Brasas / Nivel 2: Cañón Humeante / Nivel 3: Ruinas de Carbón / Nivel 4: El Altar"),
+        ("Punto de control", "Punto de control"),
+        ("Penalización", "-N puntos"),
+        ("Fin de nivel", "¡[Nivel] completado! Chispas, puntaje del nivel y mejor puntaje (con aviso de nuevo récord)"),
+        ("Fin del juego", "La brasa de Embra se apagó... pero siempre queda una chispa."),
+        ("Victoria", "¡LA FOGATA ANCESTRAL ARDE DE NUEVO! Embra encendió el altar y el Bosque de Brasas volvió a brillar."),
     ], widths=[1.7, 4.8])
 
     d.add_heading("4. Personajes y bosquejos", 1)
-    para(d, "Cada personaje se diseñó para reconocerse por su silueta y su color incluso a 16 píxeles. Las láminas muestran el bosquejo con las decisiones de diseño, "
-            "el arte final tal como aparece en el juego, su paleta y sus cuadros de animación.")
-    for fname, cap in [("char_embra.png", "Embra, protagonista."), ("char_escarchin.png", "Escarchín, enemigo común."),
-                       ("char_humoro.png", "Humoro, enemigo volador."), ("char_gelido.png", "Gélido, el Rey de Escarcha (jefe final).")]:
-        picture(d, os.path.join(ART, fname), 6.5, cap)
+    para(d, "Los personajes se diseñaron para reconocerse por su silueta y su color. Las láminas muestran el boceto, el arte final del juego, su paleta y sus cuadros de animación. "
+            "Para Embra se usa el boceto original del GDD y se explica cómo se trasladó al sprite.")
+    picture(d, os.path.join(ART, "char_embra.png"), 6.5, "Embra, protagonista: boceto del GDD y sprite del juego.")
+    picture(d, os.path.join(ART, "char_rondin.png"), 6.5, "Rondín, enemigo básico.")
+    d.add_heading("Zona de fuego y humo (peligro ambiental)", 3)
+    para(d, "No es un personaje, pero se diseñó como uno: una boca de piedra con una grieta de brasa sobre la que se generan llamas, brasas y humo con partículas. "
+            "Alterna entre fuego activo, aviso (solo brasas) y apagada (solo humo) para que el jugador pueda medir sus saltos. Se ve en el nivel 1 y en el resto de los niveles.")
 
     d.add_heading("5. Mundo y niveles", 1)
     zonas = [
-        ("Nivel 1 · Bosque de Ceniza", "Tutorial. Tonos púrpura y grises cálidos, árboles de ceniza y un cielo de atardecer. Enseña movimiento, salto, pisotón y fuego.", "Escarchín, un Humoro.", "music_bosque (100 bpm, tono tranquilo)", "mapa_nivel_1.png"),
-        ("Nivel 2 · Cuevas de Escarcha", "Cuevas azules con cristales de hielo y púas. Introduce los braseros y más Humoros.", "Escarchín, Humoro, púas.", "music_cuevas (112 bpm, tono misterioso)", "mapa_nivel_2.png"),
-        ("Nivel 3 · Ruinas de Humo", "Ruinas grises de ladrillo con pilares y plataformas flotantes. El nivel de plataformas más exigente.", "Escarchín, Humoro, púas.", "music_ruinas (108 bpm, tono tenso)", "mapa_nivel_3.png"),
-        ("Nivel 4 · Fortaleza Gélida", "Fortaleza azul oscuro con estandartes. Un tramo corto de preparación y la arena del jefe con dos plataformas para esquivar astillas.", "Escarchín, Humoro y el jefe Gélido.", "music_fortaleza (132 bpm, tono épico)", "mapa_nivel_4.png"),
+        ("Nivel 1 · Bosque de Brasas", "Bosque nocturno con árboles y musgo turquesa sobre las plataformas. Es el nivel de aprendizaje y sigue el boceto del GDD.", "2 Rondines, 1 zona de fuego, 26 chispas.", "music_bosque (96 bpm, cálida y ligera)", "mapa_nivel_1.png"),
+        ("Nivel 2 · Cañón Humeante", "Cañón de roca fría con agujas de piedra y bruma de humo. Presenta las zonas de fuego y humo.", "3 Rondines, 6 zonas de fuego, 33 chispas.", "music_canon (104 bpm)", "mapa_nivel_2.png"),
+        ("Nivel 3 · Ruinas de Carbón", "Ruinas de ladrillo azul grisáceo con pilares y grietas de brasa. Combina enemigos y fuego con plataformas más estrechas.", "9 Rondines, 6 zonas de fuego, 39 chispas.", "music_ruinas (100 bpm)", "mapa_nivel_3.png"),
+        ("Nivel 4 · El Altar", "Templo de piedra con vetas ámbar y columnas con braseros. Es una subida larga hasta el altar donde se enciende la fogata.", "8 Rondines, 8 zonas de fuego, 48 chispas.", "music_altar (112 bpm)", "mapa_nivel_4.png"),
     ]
-    for nombre, desc, enem, musica, mapa in zonas:
+    for nombre, desc, contenido, musica, mapa in zonas:
         d.add_heading(nombre, 3)
         para(d, desc, after=3)
-        rich(d, [("Enemigos: ", {"b": True}), (enem, {}), ("   Música: ", {"b": True}), (musica, {})], after=4)
+        rich(d, [("Contenido: ", {"b": True}), (contenido, {}), ("   Música: ", {"b": True}), (musica, {})], after=4)
         picture(d, os.path.join(ART, mapa), 6.5, "Mapa del nivel (se muestra en dos mitades apiladas).")
+    d.add_heading("Layout del Nivel 1: boceto del GDD y resultado", 3)
+    picture(d, os.path.join(GDDM, "boceto_nivel1_gdd.png"), 5.2, "Boceto del GDD para el Nivel 1.")
+    picture(d, os.path.join(IMG, "shot_n1_rondin.png"), 4.6, "El mismo recorrido en el juego: plataformas que suben con Rondines.")
+    picture(d, os.path.join(IMG, "shot_n1_fuego.png"), 4.6, "Plataforma con zona de fuego antes de la meta.")
 
     d.add_heading("6. Arte visual", 1)
     d.add_heading("Dirección de arte", 3)
-    for pre, t in [("Estilo: ", "pixel art con sprites de 16x16 píxeles (el jefe de 32x32) y contorno oscuro de 1 px para separar a los personajes del fondo."),
-                   ("Color: ", "cada zona tiene su propia paleta (púrpura cálido, azul glacial, gris humo y azul fortaleza). Embra es siempre lo más cálido de la pantalla, así el ojo lo encuentra primero."),
-                   ("Fondos: ", "tres capas con parallax (cielo, montañas lejanas y siluetas cercanas) que cambian según la zona."),
-                   ("Interfaz: ", "HUD mínimo arriba (vidas, chispas, nombre del nivel) y mensajes centrados que desaparecen solos."),
-                   ("Efectos: ", "partículas de fuego y humo en la estela de Embra, explosiones de chispas al recolectar y vencer enemigos.")]:
+    for pre, t in [("Estilo: ", "pixel art con sprites de 16 píxeles de ancho (Embra de 16x20) y contorno claro en Embra para que resalte sobre el fondo nocturno; el Rondín lleva contorno naranja como señal de peligro."),
+                   ("Color: ", "la paleta del GDD manda: fondo nocturno #1B1F3B, plataformas #2E3A59, ámbar #F4A62A para el personaje, fuego #E8542A para el peligro, brillo #FFF3C4 para partículas y turquesa #4CC9C0 para detalles frescos."),
+                   ("Regla: ", "lo cálido (ámbar y fuego) se reserva para Embra, las chispas y los peligros; todo lo demás es frío, así el ojo lo encuentra primero."),
+                   ("Fondos: ", "tres capas con parallax (cielo con estrellas y brasas, siluetas lejanas y cercanas) que cambian en cada lugar."),
+                   ("Interfaz: ", "HUD mínimo arriba (vidas, chispas, puntaje, nombre del nivel) y mensajes que desaparecen solos."),
+                   ("Efectos: ", "partículas de fuego y humo en la estela de Embra y en las zonas de fuego; chispas al recolectar.")]:
         bullet(d, t, pre)
-    picture(d, os.path.join(ART, "paleta_tiles.png"), 6.5, "Paleta y tilesets por zona.")
+    picture(d, os.path.join(GDDM, "paleta_gdd.png"), 5.8, "Paleta del GDD.")
+    picture(d, os.path.join(ART, "paleta_tiles.png"), 6.5, "Paleta aplicada y tilesets por nivel.")
     picture(d, os.path.join(ART, "objetos.png"), 6.5, "Objetos y elementos del mundo.")
     d.add_heading("Audio", 3)
-    para(d, "Todo el audio es original y está sintetizado con ondas cuadradas y triangulares para mantener el aire retro: 12 efectos de sonido (salto, chispa, pisotón, fuego, daño, "
-            "vida extra, punto de control, impacto, derrota del jefe, astilla, victoria y fin del juego) y 5 pistas de música en bucle (menú y una por zona).")
+    para(d, "Música de fondo chiptune de 8 bits con un tema cálido y ligero mientras se explora. Cada nivel tiene una pista base y una capa de peligro (arpegios agudos y percusión) "
+            "de la misma duración: cuando Embra se acerca a un Rondín o a una zona de fuego activa, la capa de peligro se mezcla suavemente y la música se intensifica, "
+            "así se percibe el peligro sin un elemento visual adicional. Efectos: salto, recolección de chispas, daño y pérdida de vida, además de punto de control, victoria, fin del juego y clic de menú.")
     d.add_heading("Capturas del prototipo", 3)
-    for f, cap in [("shot_menu.png", "Menú principal."), ("shot_n1_inicio.png", "Nivel 1: Bosque de Ceniza."), ("shot_n2_puas.png", "Nivel 2: Cuevas de Escarcha."),
-                   ("shot_n3_puente.png", "Nivel 3: Ruinas de Humo."), ("shot_boss_950.png", "Pelea contra Gélido."), ("shot_victoria.png", "Pantalla de victoria.")]:
+    for f, cap in [("shot_menu.png", "Menú principal."), ("shot_n1_inicio.png", "Nivel 1: Bosque de Brasas."), ("shot_n2.png", "Nivel 2: Cañón Humeante."),
+                   ("shot_n3.png", "Nivel 3: Ruinas de Carbón."), ("shot_n4.png", "Nivel 4: El Altar."), ("shot_victoria.png", "Pantalla de victoria.")]:
         picture(d, os.path.join(IMG, f), 4.6, cap)
 
     d.add_heading("7. Créditos y herramientas", 1)
     para(d, "Diseño, programación, arte y audio del prototipo: proyecto escolar de Universidad Tecmilenio. Herramientas: Godot 4.3, Python con Pillow para el arte, "
-            "el módulo wave para el audio, Git para el control de versiones. Todo el arte y el audio fueron creados para este proyecto.")
+            "el módulo wave para el audio y Git para el control de versiones. El arte y el audio fueron creados para este proyecto.")
     d.save(os.path.join(DOCS, "Biblia_del_Videojuego.docx"))
 
 
 # ================================================================== REPORTE DE PRUEBAS
 def reporte():
     d = new_doc(margins=0.9, base_size=10.5)
-    para(d, "Reporte de pruebas del prototipo", bold=True, size=17, color=MAROON, after=0)
-    para(d, "Embra: La Llama Eterna · Universidad Tecmilenio", italic=True, size=10.5, color=GOLD, after=6)
+    para(d, "Reporte de pruebas del prototipo", bold=True, size=17, color=NAVY, after=0)
+    para(d, "EMBRA: Bosque de Brasas · Universidad Tecmilenio", italic=True, size=10.5, color=AMBER, after=6)
     table(d, ["Dato", "Registro"], [
         ("Fecha de la prueba", "[COMPLETAR]"),
         ("Persona que probó", "[COMPLETAR: nombre o iniciales, edad aproximada, experiencia con videojuegos]"),
-        ("Versión y plataforma", "Prototipo v1.0, ejecutable de [Windows / Linux / navegador]"),
+        ("Versión y plataforma", "Prototipo v1.0, ejecutable de Windows"),
         ("Duración de la sesión", "[COMPLETAR] minutos, sin explicaciones previas más allá de abrir el juego"),
     ], widths=[1.8, 4.9], font=9.5)
 
     rich(d, [("Objetivo. ", {"b": True}),
-             ("Comprobar con una persona ajena al proyecto si los controles se entienden, si la dificultad es razonable y si el juego es divertido y claro de principio a fin.", {})], after=4)
+             ("Comprobar con una persona ajena al proyecto la meta de diseño del GDD (que entienda las mecánicas sin tutorial escrito, solo con el Nivel 1), si la dificultad es razonable y si el juego es claro y divertido.", {})], after=4)
     rich(d, [("Método. ", {"b": True}),
-             ("La persona jugó sin ayuda mientras yo observaba y anotaba (ver hoja de observación en el anexo). Al terminar respondió un cuestionario corto de 8 preguntas.", {})], after=4)
+             ("La persona jugó sin ayuda mientras yo observaba y anotaba (hoja de observación en el anexo). Al terminar respondió un cuestionario corto de 8 preguntas.", {})], after=4)
     rich(d, [("Pruebas internas previas. ", {"b": True}),
-             ("Un bot automático completó los 4 niveles, incluida la pelea contra Gélido. Esto confirma que los niveles se pueden terminar, pero no mide la dificultad.", {})], after=4)
+             ("Un bot automático completó los 4 niveles hasta el altar. Esto confirma que se pueden terminar, pero no mide la dificultad (el bot es invulnerable).", {})], after=4)
 
     rich(d, [("Resultados. ", {"b": True}), ("[COMPLETAR después de la prueba con los datos reales]", {"hl": True})], after=2)
     table(d, ["Aspecto", "Qué observé"], [
-        ("Controles y primeros 2 minutos", "[COMPLETAR: ¿entendió mover, saltar y disparar sin ayuda? ¿leyó los letreros?]"),
-        ("Dificultad", "[COMPLETAR: nivel donde murió más veces, vidas perdidas, ¿llegó al jefe?]"),
-        ("Enemigos y jefe", "[COMPLETAR: ¿entendió que se pisan o se queman? ¿cómo reaccionó al jefe?]"),
-        ("Claridad visual y sonido", "[COMPLETAR: ¿distinguió peligros, objetos y puntos de control?]"),
+        ("Nivel 1 sin tutorial", "[COMPLETAR: ¿entendió mover, saltar, juntar chispas y esquivar Rondines y fuego sin ayuda?]"),
+        ("Dificultad", "[COMPLETAR: nivel donde perdió más vidas, ¿llegó a El Altar?]"),
+        ("Rondines y zonas de fuego", "[COMPLETAR: ¿entendió el ciclo del fuego y que los Rondines no se pueden vencer?]"),
+        ("Penalizaciones", "[COMPLETAR: ¿se entendió la pérdida de vida y de puntos y el reinicio en el brasero?]"),
+        ("Audio y claridad visual", "[COMPLETAR: ¿notó que la música se intensifica? ¿distinguió peligros y chispas?]"),
         ("Diversión y comentarios", "[COMPLETAR: calificación del 1 al 5 y comentarios textuales]"),
         ("Errores o fallas", "[COMPLETAR: cualquier bug o confusión]"),
     ], widths=[1.9, 4.8], font=9.5)
@@ -438,20 +444,20 @@ def reporte():
 
     page_break(d)
     d.add_heading("Anexo A · Protocolo de la prueba", 2)
-    for t in ["Preparar el ejecutable y abrir el menú. No explicar los controles: que los descubra con los letreros.",
+    for t in ["Abrir el ejecutable y llegar al menú. No explicar los controles: que los descubra con el diseño del Nivel 1.",
               "Pedir que juegue entre 10 y 15 minutos pensando en voz alta.",
               "No ayudar salvo que se bloquee por más de un minuto; anotar cuándo ocurre.",
               "Al terminar, aplicar el cuestionario y preguntar qué cambiaría."]:
         bullet(d, t)
     d.add_heading("Hoja de observación", 3)
-    table(d, ["Momento", "Qué ocurrió", "Muertes / intentos", "Anotación"], [
-        ("Controles (letreros)", "", "", ""), ("Nivel 1", "", "", ""), ("Nivel 2", "", "", ""),
-        ("Nivel 3", "", "", ""), ("Nivel 4 / jefe", "", "", ""), ("Fin del juego", "", "", ""),
-    ], widths=[1.6, 2.6, 1.2, 1.3], font=9)
+    table(d, ["Momento", "Qué ocurrió", "Vidas perdidas", "Anotación"], [
+        ("Menú y controles", "", "", ""), ("Nivel 1 Bosque de Brasas", "", "", ""), ("Nivel 2 Cañón Humeante", "", "", ""),
+        ("Nivel 3 Ruinas de Carbón", "", "", ""), ("Nivel 4 El Altar", "", "", ""), ("Fin del juego / victoria", "", "", ""),
+    ], widths=[1.8, 2.4, 1.2, 1.3], font=9)
     d.add_heading("Cuestionario (1 = muy mal, 5 = muy bien)", 3)
     table(d, ["#", "Pregunta", "Respuesta"], [
-        ("1", "¿Se entienden los controles?", ""), ("2", "¿La dificultad es adecuada?", ""),
-        ("3", "¿Quedó claro qué hacen los enemigos y cómo vencerlos?", ""), ("4", "¿Se ve bien lo que pasa en pantalla?", ""),
+        ("1", "¿Se entienden los controles?", ""), ("2", "¿Entendiste cómo funcionan los Rondines y el fuego sin que nadie te explicara?", ""),
+        ("3", "¿La dificultad es adecuada?", ""), ("4", "¿Se ve bien lo que pasa en pantalla?", ""),
         ("5", "¿El sonido y la música acompañan?", ""), ("6", "¿Qué tan divertido fue?", ""),
         ("7", "¿Qué fue lo mejor del juego?", ""), ("8", "¿Qué cambiarías primero?", ""),
     ], widths=[0.4, 4.6, 1.7], font=9.5)
@@ -461,8 +467,8 @@ def reporte():
 # ================================================================== PLAN DE ACCIÓN
 def plan():
     d = new_doc(margins=0.8, base_size=10)
-    para(d, "Plan de acción", bold=True, size=18, color=MAROON, after=0)
-    para(d, "Respuesta a los resultados de la prueba · Embra: La Llama Eterna", italic=True, size=11, color=GOLD, after=8)
+    para(d, "Plan de acción", bold=True, size=18, color=NAVY, after=0)
+    para(d, "Respuesta a los resultados de la prueba · EMBRA: Bosque de Brasas", italic=True, size=11, color=AMBER, after=8)
 
     d.add_heading("1. Cómo se decide qué corregir", 2)
     para(d, "Cada hallazgo de la prueba se clasifica por impacto en la experiencia (alto, medio, bajo) y por esfuerzo de corregirlo (alto, medio, bajo). "
@@ -470,29 +476,27 @@ def plan():
             "Después de cada corrección se vuelve a correr el bot (tools/run_tests.sh) y se registra el cambio en un commit y en la bitácora.")
 
     d.add_heading("2. Mejoras ya identificadas por el equipo", 2)
-    para(d, "Estas mejoras salieron de la revisión del propio prototipo, antes de la prueba con usuarios; la prueba servirá para confirmar su prioridad.", italic=True)
+    para(d, "Salieron de la revisión del propio prototipo, antes de la prueba con usuarios; la prueba servirá para confirmar su prioridad.", italic=True)
     table(d, ["#", "Mejora", "Por qué", "Cómo", "Prio."], [
-        ("1", "Ajustar la dificultad", "El bot solo prueba que los niveles se pueden terminar; no mide dificultad.", "Según la prueba: más vidas o braseros, o menos púas/enemigos en el nivel donde más se muera.", "Alta"),
-        ("2", "Salud en lugar de una sola vida por golpe", "Una herida apaga a Embra; puede frustrar.", "Agregar 2 puntos de corazón por vida y un breve retroceso al ser golpeado.", "Media"),
-        ("3", "Ajustes de volumen", "El sonido no se puede bajar desde el juego.", "Pantalla de opciones con volumen de música y efectos.", "Media"),
-        ("4", "Guardar el progreso", "Cada partida empieza desde el nivel 1.", "Guardar el nivel alcanzado y la mejor puntuación con ConfigFile.", "Media"),
-        ("5", "Mejorar los menús para control de consola", "El menú se maneja mejor con teclado y ratón.", "Agregar navegación con D-pad y botón A en menús y pantallas finales.", "Baja"),
-        ("6", "Más variedad de música y arte", "Las pistas son cortas y se repiten.", "Alargar los loops y agregar variaciones por nivel.", "Baja"),
+        ("1", "Ajustar la dificultad", "El bot solo prueba que los niveles se pueden terminar; no mide dificultad.", "Según la prueba: más puntos de control, o menos Rondines y fuego en el nivel donde más se pierdan vidas.", "Alta"),
+        ("2", "Revisar el tiempo de las zonas de fuego", "Tiempos de fuego, aviso y apagado definidos a ojo (1.8 s, 0.5 s y 1.5 s).", "Ajustar los tiempos en fire_zone.gd según cómo los viva el jugador.", "Alta"),
+        ("3", "Confirmar la penalización de puntos", "Se interpretó \"parte del puntaje acumulado\" como el 20 % del puntaje del nivel.", "Probar otros porcentajes en global.gd (PENALTY_RATIO).", "Media"),
+        ("4", "Más variedad de enemigos", "El GDD solo define al Rondín; puede sentirse repetitivo.", "Valorar una variante del Rondín (más rápido o más pequeño) como mejora futura.", "Media"),
+        ("5", "Ajustes de volumen y pantalla de opciones", "El sonido no se puede bajar desde el juego.", "Agregar una pantalla de opciones con volumen de música y efectos.", "Media"),
+        ("6", "Mejorar los menús para control de consola", "El menú se maneja mejor con teclado y ratón.", "Agregar navegación con D-pad y botón A en menús y pantallas finales.", "Baja"),
         ("7", "Tipografía pixel art", "La fuente por defecto no combina del todo con el arte.", "Incluir una fuente pixelada con licencia libre en el tema de la interfaz.", "Baja"),
     ], widths=[0.3, 1.5, 1.8, 2.5, 0.5], font=9)
 
     d.add_heading("3. Acciones a partir de la prueba con usuario", 2)
     para(d, "Llenar esta tabla con los hallazgos del reporte de pruebas.", italic=True)
     table(d, ["Hallazgo observado", "Impacto", "Acción propuesta", "Prioridad", "Responsable", "Criterio de éxito"], [
-        ("[COMPLETAR]", "", "", "", "", ""),
-        ("[COMPLETAR]", "", "", "", "", ""),
-        ("[COMPLETAR]", "", "", "", "", ""),
-        ("[COMPLETAR]", "", "", "", "", ""),
+        ("[COMPLETAR]", "", "", "", "", ""), ("[COMPLETAR]", "", "", "", "", ""),
+        ("[COMPLETAR]", "", "", "", "", ""), ("[COMPLETAR]", "", "", "", "", ""),
     ], widths=[1.6, 0.7, 1.7, 0.7, 0.9, 1.1], font=9)
 
     d.add_heading("4. Seguimiento", 2)
     for t in ["Revisión de resultados y priorización: una sesión corta apenas termine la prueba.",
-              "Implementar las acciones de prioridad alta en la siguiente iteración y registrar cada una en la bitácora.",
+              "Implementar las acciones de prioridad alta y registrar cada una en la bitácora.",
               "Repetir la prueba con otra persona externa para confirmar que los cambios ayudaron.",
               "Exportar de nuevo el ejecutable y actualizar el README con la nueva versión."]:
         bullet(d, t)
