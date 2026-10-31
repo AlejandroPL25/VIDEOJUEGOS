@@ -46,6 +46,8 @@ func _ready() -> void:
 	add_child(hud)
 
 	_spawn_entities()
+	player.set_stage(Global.stage(), false)
+	Global.stage_changed.connect(_on_stage_changed)
 	player.global_position = checkpoint_pos
 	player.camera.limit_left = 0
 	player.camera.limit_right = width_tiles * TILE
@@ -62,8 +64,7 @@ func _ready() -> void:
 			player.camera.reset_smoothing()
 
 	hud.name_label.text = "%d. %s" % [Global.current_level + 1, data["name"]]
-	hud.set_sparks(0, sparks_in_level)
-	hud.set_score(0)
+	refresh_hud()
 	hud.show_message("Nivel %d: %s" % [Global.current_level + 1, data["name"]], 2.5)
 	Global.play_music(data["music"])
 
@@ -77,6 +78,40 @@ func _ready() -> void:
 	for i in 3:
 		await get_tree().physics_frame
 	player.set_physics_process(true)
+
+
+# ---------------------------------------------------------------- Interfaz y evolución
+## Actualiza chispas, puntaje y barra de evolución del HUD.
+func refresh_hud() -> void:
+	hud.set_sparks(sparks_collected, sparks_in_level)
+	hud.set_score(Global.level_score)
+	hud.set_evolution(Global.stage(), Global.stage_progress(), Global.sparks_to_next())
+
+
+func _on_stage_changed(new_stage: int) -> void:
+	player.set_stage(new_stage, true)
+	refresh_hud()
+	var extra := " Ahora lanzas fuego con X." if new_stage == 2 else " Tu fuego atraviesa enemigos."
+	hud.show_message("¡Embra evolucionó: %s!%s" % [Global.STAGE_NAMES[new_stage - 1], extra], 3.0)
+	if Global.autotest:
+		print("[TEST] Evolución a etapa %d (%s) con %d chispas" % [new_stage, Global.STAGE_NAMES[new_stage - 1], Global.sparks])
+
+
+## Texto flotante "+puntos" al vencer a un enemigo.
+func show_points(pos: Vector2, points: int) -> void:
+	var l := Label.new()
+	l.text = "+%d" % points
+	l.add_theme_font_size_override("font_size", 9)
+	l.add_theme_color_override("font_color", Color("FFF3C4"))
+	l.add_theme_color_override("font_outline_color", Color(0.07, 0.08, 0.17))
+	l.add_theme_constant_override("outline_size", 3)
+	l.position = pos + Vector2(-8, -22)
+	l.z_index = 30
+	add_child(l)
+	var tw := create_tween()
+	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.7)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.7)
+	tw.tween_callback(l.queue_free)
 
 
 # ---------------------------------------------------------------- Consulta del mapa
@@ -178,6 +213,21 @@ func _spawn_entities() -> void:
 					r.level = self
 					r.position = center
 					add_child(r)
+				"R":
+					var rf := RondinFurioso.new()
+					rf.level = self
+					rf.position = center
+					add_child(rf)
+				"B":
+					var rg := RondinGigante.new()
+					rg.level = self
+					rg.position = bottom + Vector2(0, -12)
+					add_child(rg)
+				"a":
+					var cz := Ceniza.new()
+					cz.level = self
+					cz.position = center
+					add_child(cz)
 				"F":
 					if not fire_done.has(Vector2i(x, y)):
 						var n := 0
@@ -213,6 +263,10 @@ func _physics_process(delta: float) -> void:
 		return
 	elapsed += delta
 	Global.play_time += delta
+	# Prueba del pisotón (desarrollo): godot -- --stomptest --tp=x,y  deja caer a Embra sobre un enemigo
+	if "--stomptest" in OS.get_cmdline_user_args() and elapsed > 1.6:
+		print("[TEST] Pisotón: enemigos vencidos = %d, Embra vivo = %s, vidas = %d" % [Global.kills, str(not player.dead), Global.lives])
+		get_tree().quit(0 if Global.kills > 0 and not player.dead else 1)
 	_update_music_danger()
 	if Global.autotest and elapsed > 300.0:
 		autotest_fail("Tiempo agotado (el bot no llegó a la meta)")
@@ -267,7 +321,7 @@ func complete_level() -> void:
 		"ENTER: ver el final" if last else "ENTER: siguiente nivel"]
 	hud.show_summary(txt)
 	if Global.autotest:
-		print("[TEST] PASA nivel %d en %.1f s (chispas %d/%d)" % [Global.current_level + 1, elapsed, sparks_collected, sparks_in_level])
+		print("[TEST] PASA nivel %d en %.1f s (chispas %d/%d, enemigos vencidos en total: %d, etapa %d)" % [Global.current_level + 1, elapsed, sparks_collected, sparks_in_level, Global.kills, Global.stage()])
 		await get_tree().create_timer(0.3).timeout
 		_advance()
 		return

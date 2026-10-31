@@ -17,6 +17,9 @@ func fill(p: Player) -> void:
 	var ground_row := feet_row + 1
 	var dir := 1.0
 	p.in_dir = dir
+	p.in_fire = true       # dispara siempre (desde la etapa Llama) para probar el combate
+	p.in_fire = true       # dispara siempre (desde la etapa Llama) para probar el combate
+	p.in_fire = true       # dispara siempre (desde la etapa Llama) para probar el combate
 
 	var jump := false
 	if p.is_on_floor():

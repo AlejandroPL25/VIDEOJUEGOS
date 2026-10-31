@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cn61d0kqfhnlk"
-path="res://.godot/imported/gelido_sheet.png-c94ca4d22fabce29391bd173112cd25c.ctex"
+uid="uid://cjwwhkgkhcnjm"
+path="res://.godot/imported/embra2_sheet.png-bd4b6f76523fdee2c7252d0b0023a329.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/gelido_sheet.png"
-dest_files=["res://.godot/imported/gelido_sheet.png-c94ca4d22fabce29391bd173112cd25c.ctex"]
+source_file="res://assets/sprites/embra2_sheet.png"
+dest_files=["res://.godot/imported/embra2_sheet.png-bd4b6f76523fdee2c7252d0b0023a329.ctex"]
 
 [params]
 

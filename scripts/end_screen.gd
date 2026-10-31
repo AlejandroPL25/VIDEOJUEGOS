@@ -27,16 +27,16 @@ func _ready() -> void:
 		var minutes := int(Global.play_time) / 60
 		var seconds := int(Global.play_time) % 60
 		body = "Embra encendió el altar y el Bosque de Brasas volvió a brillar.\n\n"
-		body += "Puntaje total: %d\nChispas recogidas: %d\nVidas perdidas: %d\nTiempo: %d:%02d\n\n" % [
-			Global.total_score, Global.sparks, Global.deaths, minutes, seconds]
+		body += "Puntaje total: %d\nChispas: %d  ·  Enemigos vencidos: %d\nVidas perdidas: %d  ·  Tiempo: %d:%02d\nEtapa final de Embra: %s\n\n" % [
+			Global.total_score, Global.sparks, Global.kills, Global.deaths, minutes, seconds, Global.STAGE_NAMES[Global.stage() - 1]]
 		body += "MEJOR PUNTAJE POR NIVEL\n"
 		for i in LevelData.LEVELS.size():
 			body += "%d. %s: %d\n" % [i + 1, LevelData.LEVELS[i]["name"], Global.best_scores[i]]
-		body += "\nENTER: volver al menú"
+		body += "\nENTER: volver al menú   Q: salir"
 	else:
 		Global.play_sfx("gameover")
 		title = "FIN DEL JUEGO"
-		body = "La brasa de Embra se apagó... pero siempre queda una chispa.\n\nENTER: reintentar el nivel\nM: menú principal"
+		body = "La brasa de Embra se apagó... pero siempre queda una chispa.\n\nENTER: reintentar el nivel\nM: menú principal   Q: salir"
 
 	var tl := _label(title, Vector2(0, 24), 15, AMBER)
 	tl.size = Vector2(480, 24)
@@ -60,12 +60,15 @@ func _label(text: String, pos: Vector2, size: int, color: Color) -> Label:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("confirm"):
+	if event.is_action_pressed("quit_game") and not OS.has_feature("web"):
+		Global.quit_game()
+	elif event.is_action_pressed("confirm"):
 		Global.stop_music()
 		if mode == "victory":
 			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 		else:
 			Global.lives = Global.START_LIVES
+			Global.restore_level_start()
 			get_tree().change_scene_to_file("res://scenes/level.tscn")
 	elif mode == "gameover" and event.is_action_pressed("menu"):
 		Global.stop_music()

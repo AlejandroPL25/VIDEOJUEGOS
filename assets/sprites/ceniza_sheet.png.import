@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2jckvsdt7lud"
-path="res://.godot/imported/hearth.png-50998dd40b56848f19003ab71857245f.ctex"
+uid="uid://iju7uxt2iqx6"
+path="res://.godot/imported/ceniza_sheet.png-38029e12e319c1eaf286971451963ae2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/hearth.png"
-dest_files=["res://.godot/imported/hearth.png-50998dd40b56848f19003ab71857245f.ctex"]
+source_file="res://assets/sprites/ceniza_sheet.png"
+dest_files=["res://.godot/imported/ceniza_sheet.png-38029e12e319c1eaf286971451963ae2.ctex"]
 
 [params]
 

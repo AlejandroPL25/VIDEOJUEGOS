@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqsm3j1lmedja"
-path="res://.godot/imported/humoro_sheet.png-da773b674f4baa3ca0695abfa7e7f9e8.ctex"
+uid="uid://sglvun5e8h8o"
+path="res://.godot/imported/furioso_sheet.png-a03f259037eb2981c7320a6d14ff27e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/humoro_sheet.png"
-dest_files=["res://.godot/imported/humoro_sheet.png-da773b674f4baa3ca0695abfa7e7f9e8.ctex"]
+source_file="res://assets/sprites/furioso_sheet.png"
+dest_files=["res://.godot/imported/furioso_sheet.png-a03f259037eb2981c7320a6d14ff27e9.ctex"]
 
 [params]
 

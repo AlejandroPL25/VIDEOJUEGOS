@@ -5,6 +5,8 @@ class_name Player
 ## Se agregaron "coyote time" y buffer de salto para que los controles se sientan justos, y una
 ## estela de fuego y humo hecha con partículas. Chocar con un Rondín o con fuego activo, o caer
 ## al vacío, cuesta una vida (la penalización de puntos la maneja Level/Global).
+## Mejoras tras la prueba con usuarios: Embra puede pisar enemigos (rebota) y EVOLUCIONA con las
+## chispas: Brasa (pisotón) -> Llama (lanza bolas de fuego con X) -> Fuego ardiente (fuego perforante).
 
 const SPEED := 100.0
 const ACCEL := 1100.0
@@ -17,7 +19,9 @@ const MAX_FALL := 420.0
 const COYOTE_TIME := 0.10      # margen para saltar justo después de dejar un borde
 const JUMP_BUFFER := 0.12      # margen si se presiona saltar un poco antes de aterrizar
 const INVULN_TIME := 1.6       # parpadeo e invulnerabilidad tras reaparecer
-const HALF_HEIGHT := 10.0      # el sprite mide 20 px de alto
+const HALF_HEIGHT := 12.0      # el sprite mide 24 px de alto
+const FIRE_COOLDOWN := [0.0, 0.5, 0.28]   # por etapa (la etapa 1 no dispara)
+const MAX_FIREBALLS := [0, 3, 4]
 
 var level: Level
 var sprite: AnimatedSprite2D
@@ -29,6 +33,12 @@ var facing := 1
 var coyote := 0.0
 var jump_buffer := 0.0
 var invuln := 0.0
+var stage := 1
+var prev_feet_y := 0.0      # posición de los pies antes de moverse en este fotograma (para detectar pisotones)
+var fire_timer := 0.0
+var shoot_anim := 0.0
+var _hint_cd := 0.0
+var _stage_frames: Array = []
 var dead := false
 var frozen := false
 
@@ -37,6 +47,7 @@ var bot: Bot = null
 var in_dir := 0.0
 var in_jump_pressed := false
 var in_jump_held := false
+var in_fire := false
 
 
 func _ready() -> void:
@@ -45,20 +56,24 @@ func _ready() -> void:
 	floor_snap_length = 4.0
 	var shape := CapsuleShape2D.new()
 	shape.radius = 4.5
-	shape.height = 18.0
+	shape.height = 16.0
 	var cs := CollisionShape2D.new()
 	cs.shape = shape
-	cs.position = Vector2(0, 1)
+	cs.position = Vector2(0, 4)
 	add_child(cs)
 
+	# Una hoja de sprites por etapa de evolución
+	for file in ["embra_sheet.png", "embra2_sheet.png", "embra3_sheet.png"]:
+		_stage_frames.append(Global.make_frames(file, 16, 24, {
+			"idle": {"frames": [0, 1], "fps": 3.0},
+			"run": {"frames": [2, 3, 4, 5], "fps": 11.0},
+			"jump": {"frames": [6], "fps": 1.0},
+			"fall": {"frames": [7], "fps": 1.0},
+			"hurt": {"frames": [8], "fps": 1.0},
+			"shoot": {"frames": [9], "fps": 1.0},
+		}))
 	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = Global.make_frames("embra_sheet.png", 16, 20, {
-		"idle": {"frames": [0, 1], "fps": 3.0},
-		"run": {"frames": [2, 3, 4, 5], "fps": 11.0},
-		"jump": {"frames": [6], "fps": 1.0},
-		"fall": {"frames": [7], "fps": 1.0},
-		"hurt": {"frames": [8], "fps": 1.0},
-	})
+	sprite.sprite_frames = _stage_frames[0]
 	sprite.play("idle")
 	add_child(sprite)
 
@@ -75,7 +90,7 @@ func _ready() -> void:
 func _setup_particles() -> void:
 	fire_trail = CPUParticles2D.new()
 	fire_trail.texture = Global.tex("particle.png")
-	fire_trail.position = Vector2(0, -8)
+	fire_trail.position = Vector2(0, -10)
 	fire_trail.amount = 12
 	fire_trail.lifetime = 0.5
 	fire_trail.local_coords = false
@@ -95,7 +110,7 @@ func _setup_particles() -> void:
 
 	smoke_trail = CPUParticles2D.new()
 	smoke_trail.texture = Global.tex("particle.png")
-	smoke_trail.position = Vector2(0, -11)
+	smoke_trail.position = Vector2(0, -14)
 	smoke_trail.amount = 6
 	smoke_trail.lifetime = 1.1
 	smoke_trail.local_coords = false
@@ -121,6 +136,7 @@ func _read_input() -> void:
 	in_dir = Input.get_axis("move_left", "move_right")
 	in_jump_pressed = Input.is_action_just_pressed("jump")
 	in_jump_held = Input.is_action_pressed("jump")
+	in_fire = Input.is_action_pressed("fire")
 
 
 func _physics_process(delta: float) -> void:
@@ -133,7 +149,13 @@ func _physics_process(delta: float) -> void:
 		_update_animation()
 		return
 
+	prev_feet_y = global_position.y + HALF_HEIGHT
 	_read_input()
+	fire_timer = max(fire_timer - delta, 0.0)
+	shoot_anim = max(shoot_anim - delta, 0.0)
+	_hint_cd = max(_hint_cd - delta, 0.0)
+	if in_fire:
+		_try_shoot()
 
 	# Invulnerabilidad tras reaparecer: parpadeo
 	if invuln > 0.0:
@@ -179,13 +201,55 @@ func _physics_process(delta: float) -> void:
 func _update_animation() -> void:
 	sprite.flip_h = facing < 0
 	var anim := "idle"
-	if not is_on_floor():
+	if shoot_anim > 0.0:
+		anim = "shoot"
+	elif not is_on_floor():
 		anim = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x) > 10.0:
 		anim = "run"
 	if sprite.animation != anim:
 		sprite.play(anim)
 	fire_trail.speed_scale = 1.0 if absf(velocity.x) > 10.0 or not is_on_floor() else 0.7
+
+
+## Rebote al pisar un enemigo (mantener saltar da más impulso).
+func bounce() -> void:
+	velocity.y = -290.0 if in_jump_held else -230.0
+	coyote = 0.0
+
+
+## Dispara una bola de fuego (desde la etapa 2). Si aún no se ha evolucionado, avisa cómo lograrlo.
+func _try_shoot() -> void:
+	if stage < 2:
+		if _hint_cd <= 0.0 and level != null:
+			_hint_cd = 3.0
+			level.hud.show_message("¡Junta %d chispas más para evolucionar y lanzar fuego!" % Global.sparks_to_next(), 2.0)
+		return
+	if fire_timer > 0.0 or get_tree().get_nodes_in_group("fireball").size() >= MAX_FIREBALLS[stage - 1]:
+		return
+	fire_timer = FIRE_COOLDOWN[stage - 1]
+	shoot_anim = 0.18
+	var fb := Fireball.new()
+	fb.direction = facing
+	fb.damage = 2 if stage >= 3 else 1
+	fb.pierce = stage >= 3
+	level.add_child(fb)
+	fb.global_position = global_position + Vector2(facing * 11.0, 2.0)
+	Global.play_sfx("shoot")
+
+
+## Cambia la apariencia y las habilidades según la etapa de evolución.
+func set_stage(new_stage: int, celebrate: bool = false) -> void:
+	stage = clampi(new_stage, 1, 3)
+	sprite.sprite_frames = _stage_frames[stage - 1]
+	sprite.play("idle")
+	if celebrate:
+		Global.play_sfx("evolve")
+		Global.spawn_burst(level, global_position, Color("FFF3C4"), 26, 120.0, 0.8, 0.0)
+		Global.spawn_burst(level, global_position, Color("F4A62A"), 20, 90.0, 0.9, -30.0)
+		var tw := create_tween()
+		tw.tween_property(sprite, "modulate", Color(3, 3, 3), 0.1)
+		tw.tween_property(sprite, "modulate", Color.WHITE, 0.4)
 
 
 ## Contacto con un Rondín o con una zona de fuego y humo activa.

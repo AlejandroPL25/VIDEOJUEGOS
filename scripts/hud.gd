@@ -11,10 +11,13 @@ const FIRE := Color("E8542A")
 var lives_label: Label
 var sparks_label: Label
 var score_label: Label
+var stage_label: Label
+var bar_fill: ColorRect
 var name_label: Label
 var msg_label: Label
 var summary_root: Control
 var summary_label: Label
+var _pause_resume_button: Button
 var pause_root: Control
 var _msg_timer := 0.0
 
@@ -41,6 +44,20 @@ func _ready() -> void:
 	score_label = _label("Puntos: 0", Vector2(125, 5), 10)
 	score_label.add_theme_color_override("font_color", AMBER)
 
+	# Barra de evolución de Embra (mejora posterior a la prueba con usuarios)
+	stage_label = _label("Brasa", Vector2(8, 18), 8)
+	stage_label.add_theme_color_override("font_color", CREAM)
+	var bar_bg := ColorRect.new()
+	bar_bg.color = Color(NIGHT, 0.9)
+	bar_bg.position = Vector2(8, 31)
+	bar_bg.size = Vector2(110, 6)
+	add_child(bar_bg)
+	bar_fill = ColorRect.new()
+	bar_fill.color = AMBER
+	bar_fill.position = Vector2(9, 32)
+	bar_fill.size = Vector2(0, 4)
+	add_child(bar_fill)
+
 	name_label = _label("", Vector2(250, 5), 9)
 	name_label.size = Vector2(222, 14)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -65,17 +82,30 @@ func _ready() -> void:
 	summary_label.size = Vector2(256, 150)
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	# Pausa
+	# Pausa: Continuar, Menú principal y Salir del juego
 	pause_root = Control.new()
 	pause_root.visible = false
 	add_child(pause_root)
 	var pbg := ColorRect.new()
-	pbg.color = Color(NIGHT, 0.85)
+	pbg.color = Color(NIGHT, 0.88)
 	pbg.size = Vector2(480, 270)
 	pause_root.add_child(pbg)
-	var pl := _label("PAUSA\n\nESC / P: continuar\nM: volver al menú", Vector2(0, 90), 14, pause_root)
-	pl.size = Vector2(480, 120)
+	var pl := _label("PAUSA", Vector2(0, 70), 16, pause_root)
+	pl.size = Vector2(480, 24)
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var box := VBoxContainer.new()
+	box.position = Vector2(165, 108)
+	box.add_theme_constant_override("separation", 5)
+	pause_root.add_child(box)
+	var resume := _pause_button("Continuar", box)
+	resume.pressed.connect(_resume)
+	var menu := _pause_button("Menú principal", box)
+	menu.pressed.connect(_go_menu)
+	var quit := _pause_button("Salir del juego", box)
+	quit.pressed.connect(func() -> void: Global.quit_game())
+	if OS.has_feature("web"):
+		quit.visible = false
+	_pause_resume_button = resume
 
 	Global.lives_changed.connect(set_lives)
 	set_lives(Global.lives)
@@ -91,6 +121,36 @@ func _label(text: String, pos: Vector2, font_size: int, parent: Node = null) -> 
 	l.add_theme_constant_override("outline_size", 3)
 	(parent if parent != null else self).add_child(l)
 	return l
+
+
+func _pause_button(text: String, parent: Node) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(150, 24)
+	Global.style_button(b, 10)
+	parent.add_child(b)
+	return b
+
+
+func _resume() -> void:
+	get_tree().paused = false
+	pause_root.visible = false
+
+
+func _go_menu() -> void:
+	get_tree().paused = false
+	Global.stop_music()
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+
+func set_evolution(stage: int, progress: float, to_next: int) -> void:
+	var name_text: String = Global.STAGE_NAMES[stage - 1]
+	if stage >= Global.STAGE_NAMES.size():
+		stage_label.text = "%s (máxima)" % name_text
+	else:
+		stage_label.text = "%s · %d chispas para evolucionar" % [name_text, to_next]
+	bar_fill.size.x = 108.0 * progress
+	bar_fill.color = AMBER if stage < 3 else FIRE
 
 
 func set_lives(n: int) -> void:
@@ -130,7 +190,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var now_paused := not get_tree().paused
 		get_tree().paused = now_paused
 		pause_root.visible = now_paused
+		if now_paused:
+			_pause_resume_button.grab_focus()
 	elif get_tree().paused and event.is_action_pressed("menu"):
-		get_tree().paused = false
-		Global.stop_music()
-		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+		_go_menu()
+	elif get_tree().paused and event.is_action_pressed("quit_game"):
+		Global.quit_game()

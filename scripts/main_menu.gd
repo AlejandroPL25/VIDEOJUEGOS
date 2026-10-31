@@ -19,33 +19,46 @@ func _ready() -> void:
 
 	var logo := TextureRect.new()
 	logo.texture = Global.tex("logo.png")
-	logo.scale = Vector2(1.6, 1.6)
-	logo.position = Vector2(240 - 91 * 1.6, 22)
+	logo.scale = Vector2(1.4, 1.4)
+	logo.position = Vector2(240 - 91 * 1.4, 8)
 	add_child(logo)
 
-	var sub := _label("BOSQUE DE BRASAS", Vector2(0, 100), 14, AMBER)
+	var sub := _label("BOSQUE DE BRASAS", Vector2(0, 80), 13, AMBER)
 	sub.size = Vector2(480, 20)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
-	var embra := TextureRect.new()
-	embra.texture = Global.make_frames("embra_sheet.png", 16, 20, {"i": {"frames": [0], "fps": 1.0}}).get_frame_texture("i", 0)
-	embra.scale = Vector2(3, 3)
-	embra.position = Vector2(216, 124)
-	add_child(embra)
+	# Las tres etapas de Embra, de la brasa al fuego ardiente
+	var xs := [190, 232, 274]
+	var files := ["embra_sheet.png", "embra2_sheet.png", "embra3_sheet.png"]
+	for i in 3:
+		var e := TextureRect.new()
+		e.texture = Global.make_frames(files[i], 16, 24, {"i": {"frames": [0], "fps": 1.0}}).get_frame_texture("i", 0)
+		e.scale = Vector2(1.6, 1.6)
+		e.position = Vector2(xs[i], 106)
+		add_child(e)
 
-	play_button = _button("Jugar", Vector2(190, 188))
+	# Botones centrados en una columna
+	var box := VBoxContainer.new()
+	box.position = Vector2(165, 150)
+	box.add_theme_constant_override("separation", 4)
+	add_child(box)
+	play_button = _button("Jugar", box)
 	play_button.pressed.connect(_on_play)
-	var scores := _button("Mejores puntajes", Vector2(190, 212))
+	var scores := _button("Mejores puntajes", box)
 	scores.pressed.connect(func() -> void:
 		controls_panel.visible = false
 		scores_panel.visible = not scores_panel.visible)
-	var controls := _button("Controles", Vector2(190, 236))
+	var controls := _button("Controles", box)
 	controls.pressed.connect(func() -> void:
 		scores_panel.visible = false
 		controls_panel.visible = not controls_panel.visible)
+	var quit := _button("Salir", box)
+	quit.pressed.connect(func() -> void: Global.quit_game())
+	if OS.has_feature("web"):
+		quit.visible = false      # en el navegador no se puede cerrar la pestaña desde el juego
 	play_button.grab_focus()
 
-	controls_panel = _panel("CONTROLES\n\nMover: flechas izquierda / derecha (o A / D)\nSaltar: ESPACIO\nPausa: ESC o P\n\nLlega al altar de cada nivel, recoge chispas\ny evita a los Rondines y al fuego.")
+	controls_panel = _panel("CONTROLES\n\nMover: flechas izquierda / derecha (o A / D)\nSaltar: ESPACIO\nBola de fuego: X (desde la etapa Llama)\nPausa: ESC o P    Salir: Q (en pausa)\n\nPisa a los enemigos o quémalos. Junta chispas\npara evolucionar: Brasa, Llama y Fuego ardiente.")
 	var lines := "MEJORES PUNTAJES\n\n"
 	for i in LevelData.LEVELS.size():
 		lines += "%d. %s: %d\n" % [i + 1, LevelData.LEVELS[i]["name"], Global.best_scores[i]]
@@ -59,12 +72,12 @@ func _ready() -> void:
 func _panel(text: String) -> Control:
 	var p := ColorRect.new()
 	p.color = Color(0.1, 0.12, 0.23, 0.95)
-	p.position = Vector2(95, 62)
-	p.size = Vector2(290, 120)
+	p.position = Vector2(90, 50)
+	p.size = Vector2(300, 130)
 	p.visible = false
 	add_child(p)
 	var l := _label(text, Vector2(12, 8), 9, Color.WHITE, p)
-	l.size = Vector2(266, 106)
+	l.size = Vector2(276, 116)
 	return p
 
 
@@ -80,13 +93,12 @@ func _label(text: String, pos: Vector2, size: int, color: Color, parent: Node = 
 	return l
 
 
-func _button(text: String, pos: Vector2) -> Button:
+func _button(text: String, parent: Node) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.position = pos
-	b.size = Vector2(100, 20)
-	b.add_theme_font_size_override("font_size", 9)
-	add_child(b)
+	b.custom_minimum_size = Vector2(150, 22)
+	Global.style_button(b, 10)
+	parent.add_child(b)
 	return b
 
 

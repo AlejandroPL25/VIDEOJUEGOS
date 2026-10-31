@@ -5,12 +5,16 @@ extends Node
 ## (música de dos capas que se intensifica cerca de enemigos y fuego).
 
 signal lives_changed(lives: int)
+signal stage_changed(stage: int)
 
 const START_LIVES := 3
 const PENALTY_RATIO := 0.2         # al chocar con un Rondín o con fuego se pierde el 20 % del puntaje del nivel
 const SPARK_POINTS := 10
 const LEVEL_BONUS := 100
 const SAVE_PATH := "user://embra_scores.cfg"
+# Evolución de Embra (mejora posterior a la prueba con usuarios): se evoluciona con las chispas recogidas
+const STAGE_NAMES := ["Brasa", "Llama", "Fuego ardiente"]
+const STAGE_SPARKS := [0, 20, 70]
 const SPRITES := "res://assets/sprites/"
 const AUDIO := "res://assets/audio/"
 
@@ -20,12 +24,15 @@ var sparks := 0              # chispas recogidas en toda la partida
 var level_score := 0         # puntaje acumulado en el nivel actual
 var total_score := 0         # suma de los niveles ya completados
 var deaths := 0
+var kills := 0
+var sparks_at_level_start := 0
 var play_time := 0.0
 var current_level := 0
 var best_scores: Array = [0, 0, 0, 0]    # mejor puntaje por nivel
 
 # ---- Modo de pruebas automáticas (bot):  godot -- --autotest ----
 var autotest := false
+var freeze_enemies := false      # solo para pruebas del pisotón: los Rondines no se mueven
 
 # ---- Modo de capturas (desarrollo):  godot -- --shot=ruta.png --shot-frames=90 ----
 var shot_path := ""
@@ -61,6 +68,10 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--level="):
 			current_level = int(a.substr(8))
+		elif a == "--freeze-enemies":
+			freeze_enemies = true
+		elif a.begins_with("--sparks="):
+			sparks = int(a.substr(9))       # solo para pruebas: empezar con N chispas (define la etapa de Embra)
 		elif a.begins_with("--shot="):
 			shot_path = a.substr(7)
 		elif a.begins_with("--shot-frames="):
@@ -74,6 +85,8 @@ func _register_inputs() -> void:
 		"move_left": [KEY_LEFT, KEY_A],
 		"move_right": [KEY_RIGHT, KEY_D],
 		"jump": [KEY_SPACE, KEY_UP, KEY_W],
+		"fire": [KEY_X, KEY_J],
+		"quit_game": [KEY_Q],
 		"pause": [KEY_ESCAPE, KEY_P],
 		"confirm": [KEY_ENTER, KEY_KP_ENTER],
 		"menu": [KEY_M],
@@ -85,7 +98,7 @@ func _register_inputs() -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = k
 			InputMap.action_add_event(action, ev)
-	var pad := {"jump": JOY_BUTTON_A, "pause": JOY_BUTTON_START, "confirm": JOY_BUTTON_A,
+	var pad := {"jump": JOY_BUTTON_A, "fire": JOY_BUTTON_X, "pause": JOY_BUTTON_START, "confirm": JOY_BUTTON_A,
 			"move_left": JOY_BUTTON_DPAD_LEFT, "move_right": JOY_BUTTON_DPAD_RIGHT}
 	for action in pad:
 		var jb := InputEventJoypadButton.new()
@@ -106,6 +119,8 @@ func start_new_game() -> void:
 	level_score = 0
 	total_score = 0
 	deaths = 0
+	kills = 0
+	sparks_at_level_start = 0
 	play_time = 0.0
 	current_level = 0
 	lives_changed.emit(lives)
@@ -114,11 +129,83 @@ func start_new_game() -> void:
 ## Se llama al comenzar (o reintentar) un nivel.
 func start_level() -> void:
 	level_score = 0
+	sparks_at_level_start = sparks
+
+
+## Al reintentar un nivel tras el fin del juego se recuperan las chispas que se tenían al empezarlo.
+func restore_level_start() -> void:
+	sparks = sparks_at_level_start
+
+
+## Etapa de evolución actual (1 = Brasa, 2 = Llama, 3 = Fuego ardiente) según las chispas recogidas.
+func stage() -> int:
+	var s := 1
+	for i in STAGE_SPARKS.size():
+		if sparks >= STAGE_SPARKS[i]:
+			s = i + 1
+	return s
+
+
+## Progreso (0 a 1) hacia la siguiente etapa; en la última etapa siempre es 1.
+func stage_progress() -> float:
+	var s := stage()
+	if s >= STAGE_SPARKS.size():
+		return 1.0
+	var a: int = STAGE_SPARKS[s - 1]
+	var b: int = STAGE_SPARKS[s]
+	return clampf(float(sparks - a) / float(b - a), 0.0, 1.0)
+
+
+func sparks_to_next() -> int:
+	var s := stage()
+	if s >= STAGE_SPARKS.size():
+		return 0
+	return int(STAGE_SPARKS[s]) - sparks
 
 
 func add_spark() -> void:
+	var before := stage()
 	sparks += 1
 	level_score += SPARK_POINTS
+	var after := stage()
+	if after > before:
+		stage_changed.emit(after)
+
+
+## Puntos por vencer a un enemigo.
+func add_kill(points: int) -> void:
+	kills += 1
+	level_score += points
+
+
+func quit_game() -> void:
+	get_tree().quit()
+
+
+## Estilo de botones con la paleta del GDD (menús y pausa).
+func style_button(b: Button, font_size: int = 10) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("2E3A59")
+	normal.border_color = Color("F4A62A")
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(2)
+	normal.content_margin_top = 3
+	normal.content_margin_bottom = 3
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Color("3d4d73")
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = Color("1B1F3B")
+	var focus: StyleBoxFlat = normal.duplicate()
+	focus.bg_color = Color("3d4d73")
+	focus.border_color = Color("FFF3C4")
+	focus.set_border_width_all(2)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("focus", focus)
+	b.add_theme_color_override("font_color", Color("FFF3C4"))
+	b.add_theme_color_override("font_hover_color", Color.WHITE)
+	b.add_theme_font_size_override("font_size", font_size)
 
 
 ## Penalización por choque con enemigo o fuego: se pierde una parte del puntaje del nivel.

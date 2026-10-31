@@ -78,6 +78,24 @@ def make_sfx():
     over = concat(sweep(392, 392, 0.2, 0.3), sweep(330, 330, 0.2, 0.3), sweep(262, 262, 0.2, 0.3), sweep(196, 196, 0.6, 0.35, 0.5, "tri"))
     write("gameover", over)
     write("click", sweep(800, 800, 0.05, 0.25))
+    # --- Efectos agregados tras la prueba con usuarios (combate y evolución) ---
+    write("stomp", mix(noise_burst(0.1, 0.45, 0.15), sweep(200, 70, 0.12, 0.45, 0.5, "tri")))
+    write("shoot", mix(noise_burst(0.16, 0.35, 0.5), sweep(620, 260, 0.16, 0.2)))
+    write("enemydie", concat(sweep(700, 300, 0.1, 0.3, 0.25), sweep(300, 120, 0.12, 0.3, 0.25)))
+    write("tick", sweep(300, 220, 0.07, 0.3, 0.125))
+    ev = []
+    for f in [392, 523, 659, 784, 1047, 1319]:
+        ev += sweep(f, f, 0.09, 0.3)
+    write("evolve", ev + sweep(1319, 1319, 0.3, 0.3))
+    # --- Efectos agregados tras la prueba con usuarios (combate y evolución) ---
+    write("stomp", mix(noise_burst(0.1, 0.45, 0.15), sweep(200, 70, 0.12, 0.45, 0.5, "tri")))
+    write("shoot", mix(noise_burst(0.16, 0.35, 0.5), sweep(620, 260, 0.16, 0.2)))
+    write("enemydie", concat(sweep(700, 300, 0.1, 0.3, 0.25), sweep(300, 120, 0.12, 0.3, 0.25)))
+    write("tick", sweep(300, 220, 0.07, 0.3, 0.125))
+    ev = []
+    for f in [392, 523, 659, 784, 1047, 1319]:
+        ev += sweep(f, f, 0.09, 0.3)
+    write("evolve", ev + sweep(1319, 1319, 0.3, 0.3))
 
 # ---------- Música ----------
 NOTE = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}

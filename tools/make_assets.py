@@ -63,51 +63,84 @@ def noise(seed):
     return r
 
 # ======================================================================
-#  EMBRA (16x20): sigue el boceto del GDD
+#  EMBRA (16x24) en 3 etapas de evolución: Brasa -> Llama -> Fuego ardiente
+#  Sigue el boceto del GDD (cuerpo rectangular redondeado ámbar, llama triangular, ojos ovalados,
+#  brazos delgados y piernas turquesa) y agrega rasgos de cada etapa.
 # ======================================================================
-def embra_frame(flame=0, bob=0, leg=0, arms="down", eyes="open", tuck=False, flash=False):
-    W, H = 16, 20
+def embra_frame(stage=1, flame=0, bob=0, leg=0, arms="down", eyes="open", tuck=False, flash=False, mouth="smile"):
+    W, H = 16, 24
     img = new(W, H)
     d = ImageDraw.Draw(img)
-    by = 6 + bob                      # parte superior del cuerpo
-    # llama triangular (fuego por fuera, brillo por dentro)
+    by = 10 + bob                     # parte superior del cuerpo
     tipx = 8 + flame
-    d.polygon([(5, by), (tipx, max(0, by - 6 + (1 if flame else 0))), (10, by)], fill=FIRE)
-    d.polygon([(6, by), (tipx, by - 3), (9, by)], fill=CREAM)
-    # cuerpo: rectángulo redondeado ámbar
+    # ---- llama (crece con la evolución)
+    if stage == 1:
+        d.polygon([(5, by), (tipx, by - 6), (10, by)], fill=FIRE)
+        d.polygon([(6, by), (tipx, by - 3), (9, by)], fill=CREAM)
+    elif stage == 2:
+        d.polygon([(4, by), (5, by - 4), (6, by - 2), (tipx, by - 9), (9, by - 2), (10, by - 4), (11, by)], fill=FIRE)
+        d.polygon([(5, by), (tipx, by - 6), (10, by)], fill=AMBER)
+        d.polygon([(7, by), (tipx, by - 3), (9, by)], fill=CREAM)
+    else:
+        d.polygon([(3, by), (3, by - 5), (5, by - 3), (6, by - 8), (tipx, by - 11), (9, by - 8), (10, by - 3), (12, by - 5), (12, by)], fill=FIRE)
+        d.polygon([(4, by), (6, by - 5), (tipx, by - 8), (9, by - 5), (11, by)], fill=AMBER)
+        d.polygon([(6, by), (tipx, by - 5), (9, by)], fill=CREAM)
+        for (x, y) in ((2, by - 8), (13, by - 7), (1, by - 3)):      # brasas flotando alrededor de la llama
+            d.point((x + flame, y), fill=AMBER)
+    # ---- cuerpo: rectángulo redondeado ámbar con sombra y luz
     d.rounded_rectangle([3, by, 12, by + 9], radius=2, fill=AMBER)
-    d.rectangle([4, by + 8, 11, by + 9], fill=AMBER_D)       # sombra inferior
-    d.line([(4, by + 1), (4, by + 5)], fill=hexc("#ffc45a"))   # luz lateral
-    # brazos delgados
+    d.rectangle([4, by + 8, 11, by + 9], fill=AMBER_D)
+    d.line([(4, by + 1), (4, by + 5)], fill=hexc("#ffc45a"))
+    if stage >= 2:
+        d.ellipse([6, by + 6, 9, by + 8], fill=hexc("#ffd36b"))        # brillo de brasa en el vientre
+    if stage >= 3:
+        d.point((5, by + 1), fill=CREAM); d.point((10, by + 1), fill=CREAM)
+    # ---- brazos
+    hand = AMBER if stage == 1 else (CREAM if stage == 2 else FIRE)
+    def arm(p1, p2, tip):
+        d.line([p1, p2], fill=AMBER if stage < 3 else FIRE)
+        if stage >= 2:
+            img.putpixel(p2, hand if stage == 2 else AMBER)
     if arms == "down":
-        d.line([(2, by + 3), (1, by + 5)], fill=AMBER); d.line([(13, by + 3), (14, by + 5)], fill=AMBER)
+        arm((2, by + 3), (1, by + 5), 0); arm((13, by + 3), (14, by + 5), 0)
     elif arms == "up":
-        d.line([(2, by + 3), (1, by + 1)], fill=AMBER); d.line([(13, by + 3), (14, by + 1)], fill=AMBER)
+        arm((2, by + 3), (1, by + 1), 0); arm((13, by + 3), (14, by + 1), 0)
     elif arms == "wide":
-        d.line([(2, by + 3), (0, by + 4)], fill=AMBER); d.line([(13, by + 3), (15, by + 4)], fill=AMBER)
+        arm((2, by + 3), (0, by + 4), 0); arm((13, by + 3), (15, by + 4), 0)
     elif arms == "swing_a":
-        d.line([(2, by + 3), (1, by + 6)], fill=AMBER); d.line([(13, by + 3), (14, by + 3)], fill=AMBER)
+        arm((2, by + 3), (1, by + 6), 0); arm((13, by + 3), (14, by + 3), 0)
     elif arms == "swing_b":
-        d.line([(2, by + 3), (1, by + 3)], fill=AMBER); d.line([(13, by + 3), (14, by + 6)], fill=AMBER)
-    # ojos ovalados oscuros
+        arm((2, by + 3), (1, by + 3), 0); arm((13, by + 3), (14, by + 6), 0)
+    elif arms == "shoot":
+        arm((2, by + 3), (1, by + 5), 0); arm((13, by + 4), (15, by + 3), 0)
+    # ---- ojos ovalados oscuros con brillo
     ey = by + 3
-    if eyes == "open":
-        d.rectangle([5, ey, 6, ey + 2], fill=NIGHT); d.rectangle([9, ey, 10, ey + 2], fill=NIGHT)
-    elif eyes == "wide":
-        d.rectangle([5, ey - 1, 6, ey + 2], fill=NIGHT); d.rectangle([9, ey - 1, 10, ey + 2], fill=NIGHT)
+    if eyes in ("open", "wide"):
+        top = ey - (1 if eyes == "wide" else 0)
+        d.rectangle([5, top, 6, ey + 2], fill=NIGHT); d.rectangle([9, top, 10, ey + 2], fill=NIGHT)
+        img.putpixel((5, top), CREAM); img.putpixel((9, top), CREAM)
     elif eyes == "x":
         for ex in (5, 9):
             img.putpixel((ex, ey), NIGHT); img.putpixel((ex + 1, ey + 1), NIGHT)
             img.putpixel((ex + 1, ey), NIGHT); img.putpixel((ex, ey + 1), NIGHT)
-    # piernas turquesa
+    # ---- boca y mejillas
+    my = by + 6
+    if eyes != "x":
+        if mouth == "smile":
+            d.line([(7, my), (8, my)], fill=AMBER_D); img.putpixel((6, my - 1), AMBER_D); img.putpixel((9, my - 1), AMBER_D)
+        elif mouth == "open":
+            d.rectangle([7, my - 1, 8, my + 1], fill=NIGHT)
+        d.point((4, my - 1), fill=hexc("#e8863a")); d.point((11, my - 1), fill=hexc("#e8863a"))
+    # ---- piernas turquesa con pie
     ly = by + 10
     if tuck:
         d.rectangle([4, ly, 6, ly + 1], fill=TEAL); d.rectangle([9, ly, 11, ly + 1], fill=TEAL)
     else:
         l1 = ly + (1 if leg > 0 else 0)
         l2 = ly + (1 if leg < 0 else 0)
-        d.rectangle([4, l1, 6, min(H - 1, ly + 3)], fill=TEAL)
-        d.rectangle([9, l2, 11, min(H - 1, ly + 3)], fill=TEAL)
+        end = min(H - 1, ly + 3)
+        d.rectangle([4, l1, 6, end], fill=TEAL); d.rectangle([9, l2, 11, end], fill=TEAL)
+        d.line([(4, end), (6, end)], fill=TEAL_D); d.line([(9, end), (11, end)], fill=TEAL_D)
     outline(img, CREAM)
     if flash:
         px = img.load()
@@ -119,49 +152,139 @@ def embra_frame(flame=0, bob=0, leg=0, arms="down", eyes="open", tuck=False, fla
     return img
 
 def make_embra():
-    frames = [
-        embra_frame(flame=0, arms="down"),                               # 0 idle A
-        embra_frame(flame=1, arms="down", bob=1),                         # 1 idle B
-        embra_frame(flame=-1, arms="swing_a", leg=1),                     # 2 correr 1
-        embra_frame(flame=1, arms="down", leg=0),                         # 3 correr 2
-        embra_frame(flame=-1, arms="swing_b", leg=-1),                    # 4 correr 3
-        embra_frame(flame=1, arms="down", leg=0),                         # 5 correr 4
-        embra_frame(flame=0, arms="up", tuck=True, eyes="wide"),          # 6 salto
-        embra_frame(flame=-1, arms="wide", tuck=True, eyes="wide"),       # 7 caída
-        embra_frame(flame=0, arms="wide", eyes="x", flash=True),          # 8 herido
-    ]
-    sheet = new(16 * len(frames), 20)
-    for i, f in enumerate(frames):
-        sheet.paste(f, (16 * i, 0))
-    save(sheet, "embra_sheet.png")
+    for stage in (1, 2, 3):
+        frames = [
+            embra_frame(stage, flame=0, arms="down"),                                      # 0 reposo A
+            embra_frame(stage, flame=1, arms="down", bob=1),                                # 1 reposo B
+            embra_frame(stage, flame=-1, arms="swing_a", leg=1),                            # 2 correr 1
+            embra_frame(stage, flame=1, arms="down", leg=0),                                # 3 correr 2
+            embra_frame(stage, flame=-1, arms="swing_b", leg=-1),                           # 4 correr 3
+            embra_frame(stage, flame=1, arms="down", leg=0),                                # 5 correr 4
+            embra_frame(stage, flame=0, arms="up", tuck=True, eyes="wide"),                 # 6 salto
+            embra_frame(stage, flame=-1, arms="wide", tuck=True, eyes="wide"),              # 7 caída
+            embra_frame(stage, flame=0, arms="wide", eyes="x", flash=True),                 # 8 herido
+            embra_frame(stage, flame=1, arms="shoot", mouth="open"),                        # 9 disparo
+        ]
+        sheet = new(16 * len(frames), 24)
+        for i, f in enumerate(frames):
+            sheet.paste(f, (16 * i, 0))
+        save(sheet, "embra_sheet.png" if stage == 1 else "embra%d_sheet.png" % stage)
 
 # ======================================================================
-#  RONDÍN (enemigo): criatura de carbón con grietas de brasa
+#  ENEMIGOS: Rondín, Rondín furioso, Rondín gigante y Ceniza (volador)
 # ======================================================================
+CARBON = hexc("#3a3d52")
+CARBON_D = hexc("#262938")
+
 def rondin(step=0):
     img = new(16, 16)
     d = ImageDraw.Draw(img)
-    carbon = hexc("#3a3d52")
-    carbon_d = hexc("#262938")
-    d.rounded_rectangle([2, 4, 13, 13], radius=3, fill=carbon)
-    d.rectangle([3, 11, 12, 13], fill=carbon_d)
-    d.polygon([(3, 5), (4, 1), (6, 4)], fill=carbon)                 # trozos de carbón
-    d.polygon([(8, 4), (10, 0), (12, 5)], fill=carbon)
-    d.line([(4, 8), (6, 9), (5, 11)], fill=FIRE_D)                   # grietas de brasa
-    d.line([(11, 6), (10, 8), (12, 9)], fill=FIRE_D)
-    d.rectangle([4, 6, 6, 8], fill=FIRE); d.rectangle([9, 6, 11, 8], fill=FIRE)   # ojos encendidos
+    sq = 1 if step else 0
+    d.rounded_rectangle([2, 4 + sq, 13, 13], radius=3, fill=CARBON)
+    d.rectangle([3, 11, 12, 13], fill=CARBON_D)
+    d.polygon([(3, 5 + sq), (4, 1 + sq), (6, 4 + sq)], fill=CARBON)               # trozos de carbón
+    d.polygon([(8, 4 + sq), (10, 0 + sq), (12, 5 + sq)], fill=CARBON)
+    d.point((4, 2 + sq), fill=AMBER); d.point((10, 1 + sq), fill=AMBER)           # brasas en los cuernos
+    d.line([(4, 9), (6, 10), (5, 12)], fill=FIRE_D)                               # grietas de brasa
+    d.line([(11, 8), (10, 10), (12, 11)], fill=FIRE_D)
+    d.line([(4, 5 + sq), (6, 6 + sq)], fill=NIGHT_D); d.line([(11, 5 + sq), (9, 6 + sq)], fill=NIGHT_D)   # ceño
+    d.rectangle([4, 7, 6, 8], fill=FIRE); d.rectangle([9, 7, 11, 8], fill=FIRE)   # ojos encendidos
     img.putpixel((5, 7), CREAM); img.putpixel((10, 7), CREAM)
+    d.line([(6, 11), (9, 11)], fill=FIRE_D)                                       # boca
     if step == 0:
-        d.rectangle([3, 14, 5, 15], fill=carbon_d); d.rectangle([10, 14, 12, 15], fill=carbon_d)
+        d.rectangle([3, 14, 5, 15], fill=CARBON_D); d.rectangle([10, 14, 12, 15], fill=CARBON_D)
     else:
-        d.rectangle([4, 14, 6, 15], fill=carbon_d); d.rectangle([9, 14, 11, 15], fill=carbon_d)
+        d.rectangle([4, 14, 6, 15], fill=CARBON_D); d.rectangle([9, 14, 11, 15], fill=CARBON_D)
     outline(img, FIRE)
     return img
 
-def make_rondin():
+def furioso(step=0, charge=False):
+    img = new(16, 16)
+    d = ImageDraw.Draw(img)
+    lean = 1 if charge else 0
+    body = hexc("#5a2f35")
+    d.rounded_rectangle([2 + lean, 5, 13, 13], radius=3, fill=body)
+    d.rectangle([3 + lean, 11, 12, 13], fill=hexc("#3b1f26"))
+    for x in (3, 6, 9):                                                         # púas ardientes en el lomo
+        d.polygon([(x + lean, 5), (x + 1 + lean, 0 + (1 if step else 0)), (x + 3 + lean, 5)], fill=FIRE)
+    d.line([(4, 9), (7, 10), (5, 12)], fill=AMBER)
+    d.line([(10, 8), (9, 10), (12, 11)], fill=AMBER)
+    d.rectangle([4 + lean, 7, 6 + lean, 8], fill=CREAM); d.rectangle([9 + lean, 7, 11 + lean, 8], fill=CREAM)
+    img.putpixel((6 + lean, 8), FIRE); img.putpixel((11 + lean, 8), FIRE)
+    d.line([(4 + lean, 6), (7 + lean, 7)], fill=NIGHT_D); d.line([(11 + lean, 6), (8 + lean, 7)], fill=NIGHT_D)
+    if charge:
+        d.rectangle([6, 11, 10, 12], fill=NIGHT_D)
+        d.rectangle([2, 14, 5, 15], fill=hexc("#3b1f26")); d.rectangle([9, 14, 13, 15], fill=hexc("#3b1f26"))
+    elif step == 0:
+        d.rectangle([3, 14, 5, 15], fill=hexc("#3b1f26")); d.rectangle([10, 14, 12, 15], fill=hexc("#3b1f26"))
+    else:
+        d.rectangle([4, 14, 6, 15], fill=hexc("#3b1f26")); d.rectangle([9, 14, 11, 15], fill=hexc("#3b1f26"))
+    outline(img, AMBER)
+    return img
+
+def gigante(step=0):
+    img = new(24, 24)
+    d = ImageDraw.Draw(img)
+    sq = 1 if step else 0
+    d.rounded_rectangle([2, 6 + sq, 21, 20], radius=4, fill=CARBON)
+    d.rectangle([4, 17, 19, 20], fill=CARBON_D)
+    d.polygon([(3, 7 + sq), (5, 1 + sq), (8, 6 + sq)], fill=CARBON)               # cuernos grandes
+    d.polygon([(15, 6 + sq), (19, 1 + sq), (21, 7 + sq)], fill=CARBON)
+    d.point((5, 2 + sq), fill=AMBER); d.point((19, 2 + sq), fill=AMBER)
+    d.rectangle([5, 9, 8, 11], fill=FIRE); d.rectangle([15, 9, 18, 11], fill=FIRE)   # ojos
+    img.putpixel((6, 9), CREAM); img.putpixel((16, 9), CREAM)
+    d.line([(5, 8), (9, 9)], fill=NIGHT_D); d.line([(18, 8), (14, 9)], fill=NIGHT_D)
+    d.ellipse([9, 13, 14, 18], fill=FIRE_D)                                         # núcleo de brasa en el pecho
+    d.ellipse([10, 14, 13, 17], fill=AMBER); d.point((11, 15), fill=CREAM)
+    d.line([(4, 12), (6, 15), (4, 17)], fill=FIRE_D); d.line([(19, 12), (17, 15), (19, 17)], fill=FIRE_D)
+    if step == 0:
+        d.rectangle([4, 21, 9, 23], fill=CARBON_D); d.rectangle([14, 21, 19, 23], fill=CARBON_D)
+    else:
+        d.rectangle([5, 21, 10, 23], fill=CARBON_D); d.rectangle([13, 21, 18, 23], fill=CARBON_D)
+    outline(img, FIRE)
+    return img
+
+def ceniza(wing=0):
+    img = new(16, 16)
+    d = ImageDraw.Draw(img)
+    ash = hexc("#8a90b0"); ash_l = hexc("#b3b9d4"); ash_d = hexc("#5f6585")
+    d.ellipse([3, 3, 12, 11], fill=ash)
+    d.ellipse([4, 4, 9, 8], fill=ash_l)
+    d.polygon([(3, 9), (4, 14), (6, 12), (8, 15), (10, 12), (12, 14), (12, 9)], fill=ash_d)   # cola de ceniza
+    wy = 5 - wing * 2
+    d.polygon([(0, wy), (3, 6), (3, 10)], fill=ash_d)
+    d.polygon([(15, wy), (12, 6), (12, 10)], fill=ash_d)
+    d.rectangle([5, 6, 6, 8], fill=FIRE); d.rectangle([9, 6, 10, 8], fill=FIRE)
+    img.putpixel((5, 6), CREAM); img.putpixel((9, 6), CREAM)
+    d.point((8, 3), fill=AMBER); d.point((4, 5), fill=AMBER)                                    # brasas dentro de la ceniza
+    outline(img, FIRE_D)
+    return img
+
+def make_enemies():
     sheet = new(32, 16)
     sheet.paste(rondin(0), (0, 0)); sheet.paste(rondin(1), (16, 0))
     save(sheet, "rondin_sheet.png")
+    sheet = new(48, 16)
+    sheet.paste(furioso(0), (0, 0)); sheet.paste(furioso(1), (16, 0)); sheet.paste(furioso(0, True), (32, 0))
+    save(sheet, "furioso_sheet.png")
+    sheet = new(48, 24)
+    sheet.paste(gigante(0), (0, 0)); sheet.paste(gigante(1), (24, 0))
+    save(sheet, "gigante_sheet.png")
+    sheet = new(32, 16)
+    sheet.paste(ceniza(0), (0, 0)); sheet.paste(ceniza(1), (16, 0))
+    save(sheet, "ceniza_sheet.png")
+    # bola de fuego 8x8 (2 cuadros)
+    sheet = new(16, 8)
+    for i in range(2):
+        t = new(8, 8)
+        d = ImageDraw.Draw(t)
+        d.ellipse([1, 1, 6, 6], fill=FIRE)
+        d.ellipse([2, 2, 5, 5], fill=AMBER)
+        t.putpixel((3 + i, 3), CREAM)
+        d.polygon([(0, 3), (2, 2), (2, 5)], fill=FIRE_D)
+        outline(t, NIGHT_D)
+        sheet.paste(t, (8 * i, 0))
+    save(sheet, "fireball.png")
 
 # ======================================================================
 #  TILES (2 columnas × 4 filas: [superficie, interior] por zona)
@@ -466,15 +589,15 @@ def make_logo():
     save(base, "logo.png")
 
 def make_icon():
-    f = embra_frame()
-    big = f.resize((48, 60), Image.NEAREST)
+    f = embra_frame(2)
+    big = f.resize((48, 72), Image.NEAREST)
     bg = Image.new("RGBA", (64, 64), NIGHT)
-    bg.alpha_composite(big, (8, 2))
+    bg.alpha_composite(big.crop((0, 4, 48, 68)).resize((48, 64), Image.NEAREST), (8, 0))
     save(bg, "icon.png")
 
 def clean_obsolete():
     """Elimina assets del diseño anterior que ya no están en el GDD."""
-    for f in ("escarchin_sheet.png", "humoro_sheet.png", "gelido_sheet.png", "fireball.png", "iceshard.png",
+    for f in ("escarchin_sheet.png", "humoro_sheet.png", "gelido_sheet.png", "iceshard.png",
               "spikes.png", "heart.png", "hearth.png", "sign.png"):
         p = os.path.join(OUT, f)
         if os.path.exists(p):
@@ -483,7 +606,7 @@ def clean_obsolete():
 def main():
     clean_obsolete()
     make_embra()
-    make_rondin()
+    make_enemies()
     make_tiles()
     make_items()
     make_decor()

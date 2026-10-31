@@ -35,8 +35,7 @@ func _on_body_entered(body: Node) -> void:
 	set_deferred("monitoring", false)
 	Global.add_spark()
 	level.sparks_collected += 1
-	level.hud.set_score(Global.level_score)
-	level.hud.set_sparks(level.sparks_collected, level.sparks_in_level)
+	level.refresh_hud()
 	Global.play_sfx("spark")
 	Global.spawn_burst(get_parent(), global_position, Color("FFF3C4"), 6, 40.0, 0.35, 0.0)
 	queue_free()

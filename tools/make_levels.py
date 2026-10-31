@@ -11,7 +11,9 @@ Las posiciones se dan RELATIVAS al inicio de cada tramo para evitar errores de c
 Salida: scripts/level_data.gd y docs/niveles_ascii.txt
 
 Leyenda:
-  #  suelo / plataforma     o  chispa (moneda)     P  inicio de Embra     r  Rondín (enemigo que patrulla)
+  #  suelo / plataforma     o  chispa (moneda)     P  inicio de Embra    
+  R  Rondín furioso (carga)  B  Rondín gigante (2 de vida)  a  Ceniza (enemigo volador)
+  R  Rondín furioso (carga)  B  Rondín gigante (2 de vida)  a  Ceniza (enemigo volador)
   F  zona de fuego y humo   c  brasero (punto de control)    G  altar (meta)    T  decoración de fondo
 """
 import os
@@ -125,12 +127,14 @@ def nivel2():
     L.gap(3)
     d = L.plat(6, 11)                              # cruce del cañón en plataformas
     L.sparks([d + 2, d + 3], 8)
+    L.put(d + 5, 6, "a")                           # Ceniza voladora sobre el cruce
+    L.put(d + 5, 6, "a")                           # Ceniza voladora sobre el cruce
     L.gap(3)
     e = L.plat(9, 12)
     L.fire(e + 3, 12, 2); L.put(e + 3, 8, "o"); L.put(e + 4, 8, "o")
     L.gap(3)
     f = L.plat(6, 11)
-    L.put(f + 3, 7, "o")
+    L.put(f + 3, 7, "o"); L.put(f + 1, 5, "a")
     L.gap(3)
     g = L.seg(20, 13)                              # segundo tramo: brasero, Rondín y zonas de fuego
     L.put(g + 1, 12, "c"); L.put(g + 8, 12, "r")
@@ -156,10 +160,10 @@ def nivel3():
     L.put(b + 2, 12, "r"); L.sparks([b + 4, b + 5], 9)
     L.gap(3)
     c = L.plat(9, 12)
-    L.fire(c + 3, 12, 2); L.put(c + 3, 8, "o"); L.put(c + 4, 8, "o")
+    L.fire(c + 3, 12, 2); L.put(c + 3, 8, "o"); L.put(c + 4, 8, "o"); L.put(c + 7, 6, "a")
     L.gap(3)
     d = L.seg(14, 13)
-    L.put(d + 1, 12, "c"); L.put(d + 5, 12, "r"); L.put(d + 11, 12, "T")
+    L.put(d + 1, 12, "c"); L.put(d + 5, 12, "R"); L.put(d + 11, 12, "T")
     L.sparks([d + 8, d + 9, d + 10], 10)
     L.seg(3, 11)                                   # torre de escalones
     L.seg(3, 9)
@@ -169,7 +173,7 @@ def nivel3():
     L.seg(3, 9)
     L.seg(3, 11)
     e = L.seg(12, 13)
-    L.put(e + 3, 12, "r"); L.put(e + 8, 12, "r"); L.sparks([e + 5, e + 6], 10)
+    L.put(e + 3, 12, "R"); L.put(e + 8, 12, "r"); L.sparks([e + 5, e + 6], 10)
     L.gap(3)
     f = L.plat(6, 12)
     L.put(f + 3, 11, "r")
@@ -189,7 +193,7 @@ def nivel3():
     L.fire(j + 3, 13, 3); L.arc(j + 1, j + 7, 11, 3)
     L.gap(3)
     k = L.seg(12, 13)
-    L.put(k + 3, 12, "r"); L.put(k + 8, 12, "r"); L.sparks([k + 5, k + 6], 10)
+    L.put(k + 3, 12, "r"); L.put(k + 8, 12, "R"); L.sparks([k + 5, k + 6], 10); L.put(k + 5, 7, "a")
     L.seg(2, 12)
     L.seg(2, 10)
     m = L.seg(26, 14)
@@ -213,7 +217,7 @@ def nivel4():
     L.fire(c + 3, 12, 2); L.put(c + 3, 8, "o"); L.put(c + 4, 8, "o")
     L.gap(3)
     d = L.seg(16, 13)
-    L.put(d + 1, 12, "c"); L.put(d + 6, 12, "r"); L.fire(d + 10, 13, 3); L.arc(d + 8, d + 14, 11, 3)
+    L.put(d + 1, 12, "c"); L.put(d + 6, 12, "R"); L.fire(d + 10, 13, 3); L.arc(d + 8, d + 14, 11, 3)
     L.put(d + 14, 12, "T")
     L.gap(3)
     e = L.plat(7, 12)
@@ -226,7 +230,7 @@ def nivel4():
     L.fire(g + 3, 10, 2); L.put(g + 3, 6, "o"); L.put(g + 4, 6, "o")
     L.gap(3)
     h = L.seg(14, 12)
-    L.put(h + 1, 11, "c"); L.put(h + 6, 11, "r"); L.put(h + 10, 11, "r"); L.put(h + 12, 11, "T")
+    L.put(h + 1, 11, "c"); L.put(h + 6, 11, "B"); L.put(h + 12, 11, "T"); L.put(h + 9, 6, "a")
     L.sparks([h + 3, h + 4], 9)
     L.seg(3, 10)                                   # subida por escalones
     L.seg(3, 8)
@@ -240,12 +244,12 @@ def nivel4():
     L.fire(k + 3, 8, 2); L.put(k + 3, 4, "o"); L.put(k + 4, 4, "o")
     L.gap(3)
     l = L.seg(16, 9)
-    L.put(l + 1, 8, "c"); L.put(l + 6, 8, "r"); L.fire(l + 10, 9, 3); L.arc(l + 8, l + 14, 6, 3)
+    L.put(l + 1, 8, "c"); L.put(l + 6, 8, "B"); L.fire(l + 10, 9, 3); L.arc(l + 8, l + 14, 6, 3)
     L.put(l + 14, 8, "T")
     L.seg(3, 8)
     L.seg(3, 7)
     m = L.seg(26, 6)                               # tramo final hasta el altar
-    L.put(m + 1, 5, "c"); L.put(m + 6, 5, "r"); L.fire(m + 10, 6, 2); L.fire(m + 15, 6, 2)
+    L.put(m + 1, 5, "c"); L.put(m + 6, 5, "R"); L.fire(m + 10, 6, 2); L.fire(m + 15, 6, 2); L.put(m + 12, 1, "a")
     L.sparks([m + 3, m + 4], 3); L.arc(m + 8, m + 13, 3, 2)
     L.put(m + 19, 5, "T"); L.put(m + 22, 5, "G")
     return dict(name="El Altar", theme=3, music="music_altar", rows=L.rows())
@@ -283,5 +287,5 @@ if __name__ == "__main__":
             f.write("\n".join(lv["rows"]) + "\n\n")
     for i, lv in enumerate(LEVELS, 1):
         flat = "".join(lv["rows"])
-        print(f"Nivel {i}: {len(lv['rows'][0])} cols | chispas={flat.count('o')} Rondines={flat.count('r')} fuego={flat.count('F')} puntos_control={flat.count('c')}")
+        print(f"Nivel {i}: {len(lv['rows'][0])} cols | chispas={flat.count('o')} Rondines={flat.count('r')} furiosos={flat.count('R')} gigantes={flat.count('B')} Cenizas={flat.count('a')} fuego={flat.count('F')} puntos_control={flat.count('c')}")
     print("level_data.gd generado")

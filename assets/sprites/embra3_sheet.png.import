@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d1g1m2hfhkjfo"
-path="res://.godot/imported/spikes.png-96dcd08cb5f6ee429e14e23ef70f641d.ctex"
+uid="uid://cgnue6y02yw60"
+path="res://.godot/imported/embra3_sheet.png-d64915bdd9b174e43423974f81562b35.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spikes.png"
-dest_files=["res://.godot/imported/spikes.png-96dcd08cb5f6ee429e14e23ef70f641d.ctex"]
+source_file="res://assets/sprites/embra3_sheet.png"
+dest_files=["res://.godot/imported/embra3_sheet.png-d64915bdd9b174e43423974f81562b35.ctex"]
 
 [params]
 
