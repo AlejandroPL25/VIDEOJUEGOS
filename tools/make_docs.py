@@ -287,6 +287,19 @@ def bitacora():
     para(d, "Importante: el bot es invulnerable, así que estas pruebas confirman que los niveles son físicamente completables, pero no dicen nada de la dificultad ni de la diversión. "
             "Para eso falta la prueba con una persona externa (ver el reporte de pruebas).", italic=True)
 
+    d.add_heading("7b. Entrada 7 · Mejoras posteriores a la prueba con usuarios (v1.1)", 1)
+    para(d, "Después de que unas personas probaron el prototipo salieron seis comentarios. No están en el GDD, pero se decidió implementarlos porque mejoran la jugabilidad sin cambiar las reglas del GDD.")
+    table(d, ["Comentario del usuario", "Qué se hizo", "Dónde"], [
+        ("Falta un botón de salir", "Botón Salir en el menú principal, en el menú de pausa y tecla Q durante la partida", "main_menu.gd, hud.gd, global.gd"),
+        ("No se puede matar enemigos saltando encima", "Pisotón: si Embra cae sobre el enemigo lo vence y rebota. Se usa la posición de los pies del fotograma anterior para distinguirlo del contacto lateral", "enemy_base.gd, player.gd"),
+        ("Mejor forma de matar enemigos", "Bola de fuego con X o J (con enfriamiento y máximo en pantalla); en la etapa 3 atraviesa y hace doble daño", "fireball.gd, player.gd"),
+        ("Que el personaje evolucione", "3 etapas según las chispas acumuladas: Brasa (0), Llama (20) y Fuego ardiente (70), con sprite propio y barra en el HUD", "global.gd, hud.gd, player.gd"),
+        ("Mejores enemigos", "Rondín furioso (carga), Rondín gigante (2 de vida) y Ceniza (vuela). Cada enemigo da puntos distintos: 50, 100, 200 y 75", "enemy_base.gd, rondin_*.gd, ceniza.gd"),
+        ("Mejorar el diseño de los personajes", "Sprites nuevos de 16x24 para Embra (3 etapas) y para todos los enemigos, con la paleta del GDD", "tools/make_assets.py"),
+    ], widths=[1.9, 3.5, 1.4], font=8.5)
+    para(d, "Pruebas: el bot sigue completando los 4 niveles y una prueba aparte confirma que el pisotón vence al enemigo sin quitar vidas (la prueba de contacto lateral sí lastima a Embra). "
+            "Al ser mejoras fuera del GDD, las reglas de puntaje, vidas y penalización no cambiaron.", italic=True)
+
     d.add_heading("8. Pendientes", 1)
     for t in ["Hacer la prueba con al menos una persona externa y llenar el reporte de pruebas.",
               "Ajustar dificultad, vidas y puntos de control según lo que se observe (plan de acción).",
@@ -405,6 +418,15 @@ def biblia():
                    ("shot_n3.png", "Nivel 3: Ruinas de Carbón."), ("shot_n4.png", "Nivel 4: El Altar."), ("shot_victoria.png", "Pantalla de victoria.")]:
         picture(d, os.path.join(IMG, f), 4.6, cap)
 
+    d.add_heading("Cambios posteriores a la prueba: evolución y enemigos", 3)
+    para(d, "Embra evoluciona al juntar chispas: Brasa (inicio), Llama (20 chispas, desbloquea la bola de fuego) y Fuego ardiente (70 chispas, el fuego atraviesa enemigos y hace doble daño). "
+            "Además de los Rondines del GDD aparecen tres variantes: el Furioso carga contra Embra al verlo, el Gigante resiste dos golpes y la Ceniza vuela. Todos se pueden vencer saltándoles encima o con fuego.")
+    picture(d, os.path.join(ART, "evolucion.png"), 5.8, "Las tres etapas de Embra.")
+    picture(d, os.path.join(ART, "enemigos.png"), 6.5, "Enemigos del juego y puntos que dan.")
+    for f, cap in [("shot_evo2.png", "Embra en etapa 2 (Llama) con barra de evolución."), ("shot_evo3.png", "Embra en etapa 3 (Fuego ardiente)."),
+                   ("shot_n3_furioso.png", "Rondín furioso."), ("shot_n4_gigante.png", "Rondín gigante.")]:
+        picture(d, os.path.join(IMG, f), 4.2, cap)
+
     d.add_heading("7. Créditos y herramientas", 1)
     para(d, "Diseño, programación, arte y audio del prototipo: proyecto escolar de Universidad Tecmilenio. Herramientas: Godot 4.3, Python con Pillow para el arte, "
             "el módulo wave para el audio y Git para el control de versiones. El arte y el audio fueron creados para este proyecto.")
@@ -461,6 +483,16 @@ def reporte():
         ("5", "¿El sonido y la música acompañan?", ""), ("6", "¿Qué tan divertido fue?", ""),
         ("7", "¿Qué fue lo mejor del juego?", ""), ("8", "¿Qué cambiarías primero?", ""),
     ], widths=[0.4, 4.6, 1.7], font=9.5)
+    d.add_heading("Anexo B · Hallazgos de la primera prueba (usuarios externos)", 2)
+    table(d, ["#", "Hallazgo", "Qué se hizo (v1.1)"], [
+        ("1", "No hay forma de salir del juego", "Botón Salir en menú y pausa, tecla Q"),
+        ("2", "No se puede matar enemigos saltando encima", "Pisotón con rebote"),
+        ("3", "Hace falta otra forma de vencer enemigos", "Bola de fuego (X o J)"),
+        ("4", "El personaje no evoluciona", "3 etapas por chispas acumuladas"),
+        ("5", "Los enemigos son todos iguales", "Furioso, Gigante y Ceniza"),
+        ("6", "El diseño de los personajes puede mejorar", "Sprites nuevos de Embra y enemigos"),
+    ], widths=[0.4, 3.4, 2.9], font=9.5)
+    para(d, "Pendiente: repetir la prueba con la v1.1 para confirmar que los cambios ayudaron (datos de la persona, tiempo y calificación en la plantilla de arriba).", italic=True)
     d.save(os.path.join(DOCS, "Reporte_de_Pruebas.docx"))
 
 
@@ -481,7 +513,7 @@ def plan():
         ("1", "Ajustar la dificultad", "El bot solo prueba que los niveles se pueden terminar; no mide dificultad.", "Según la prueba: más puntos de control, o menos Rondines y fuego en el nivel donde más se pierdan vidas.", "Alta"),
         ("2", "Revisar el tiempo de las zonas de fuego", "Tiempos de fuego, aviso y apagado definidos a ojo (1.8 s, 0.5 s y 1.5 s).", "Ajustar los tiempos en fire_zone.gd según cómo los viva el jugador.", "Alta"),
         ("3", "Confirmar la penalización de puntos", "Se interpretó \"parte del puntaje acumulado\" como el 20 % del puntaje del nivel.", "Probar otros porcentajes en global.gd (PENALTY_RATIO).", "Media"),
-        ("4", "Más variedad de enemigos", "El GDD solo define al Rondín; puede sentirse repetitivo.", "Valorar una variante del Rondín (más rápido o más pequeño) como mejora futura.", "Media"),
+        ("4", "Más variedad de enemigos", "El GDD solo define al Rondín; puede sentirse repetitivo.", "Ya se agregaron Furioso, Gigante y Ceniza en la v1.1; falta ver en la prueba si se sienten bien.", "Hecha"),
         ("5", "Ajustes de volumen y pantalla de opciones", "El sonido no se puede bajar desde el juego.", "Agregar una pantalla de opciones con volumen de música y efectos.", "Media"),
         ("6", "Mejorar los menús para control de consola", "El menú se maneja mejor con teclado y ratón.", "Agregar navegación con D-pad y botón A en menús y pantallas finales.", "Baja"),
         ("7", "Tipografía pixel art", "La fuente por defecto no combina del todo con el arte.", "Incluir una fuente pixelada con licencia libre en el tema de la interfaz.", "Baja"),
@@ -490,8 +522,13 @@ def plan():
     d.add_heading("3. Acciones a partir de la prueba con usuario", 2)
     para(d, "Llenar esta tabla con los hallazgos del reporte de pruebas.", italic=True)
     table(d, ["Hallazgo observado", "Impacto", "Acción propuesta", "Prioridad", "Responsable", "Criterio de éxito"], [
-        ("[COMPLETAR]", "", "", "", "", ""), ("[COMPLETAR]", "", "", "", "", ""),
-        ("[COMPLETAR]", "", "", "", "", ""), ("[COMPLETAR]", "", "", "", "", ""),
+        ("Sin botón de salir", "Alto", "Botón Salir en menú y pausa, tecla Q", "Alta", "Programación", "Hecho (v1.1)"),
+        ("No se mata saltando sobre el enemigo", "Alto", "Pisotón con rebote", "Alta", "Programación", "Hecho (v1.1)"),
+        ("Pocas formas de vencer enemigos", "Medio", "Bola de fuego con enfriamiento", "Media", "Programación", "Hecho (v1.1)"),
+        ("El personaje no evoluciona", "Medio", "3 etapas según chispas acumuladas", "Media", "Programación y arte", "Hecho (v1.1)"),
+        ("Enemigos poco variados", "Medio", "Furioso, Gigante y Ceniza", "Media", "Programación y arte", "Hecho (v1.1)"),
+        ("Diseño de personajes mejorable", "Medio", "Sprites nuevos con la paleta del GDD", "Media", "Arte", "Hecho (v1.1)"),
+        ("Repetir la prueba con la v1.1", "Medio", "Probar con otra persona externa y llenar el reporte", "Alta", "Equipo", "Pendiente"),
     ], widths=[1.6, 0.7, 1.7, 0.7, 0.9, 1.1], font=9)
 
     d.add_heading("4. Seguimiento", 2)
