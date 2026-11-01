@@ -21,7 +21,6 @@ esquivar a los Rondines y las zonas de fuego y humo, y llegar al altar para reav
 - `scripts/` código del juego (todo comentado): `global.gd` (autoload), `player.gd`, `level.gd`, `rondin.gd`, `fire_zone.gd`, HUD, `bot.gd` (pruebas).
 - `assets/` arte y audio originales generados con `tools/make_assets.py` y `tools/make_audio.py`.
 - `tools/make_levels.py` genera los mapas ASCII (`scripts/level_data.gd`).
-- `docs/` bitácora, biblia del videojuego, reporte de pruebas y plan de acción.
 
 ## Abrir y ejecutar
 Instala Godot 4.3, abre `project.godot` y presiona F5. Para exportar: Proyecto > Exportar (hay presets para Windows, Linux y Web).
