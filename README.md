@@ -33,8 +33,4 @@ Cada etapa quedó en un commit (`git log --oneline`).
 
 ## Uso de IA
 
-Durante el desarrollo usé IA (Claude) como herramienta de apoyo para depurar el código. El diseño del juego, sus mecánicas y su implementación son de mi autoría.
-
-## Uso de IA
-
 El proyecto se empezó en Unity y se migró a Godot. Como no conocía Godot, usé IA (Claude) como apoyo para depurar el código durante la migracion.
