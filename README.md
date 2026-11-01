@@ -31,3 +31,7 @@ Instala Godot 4.3, abre `project.godot` y presiona F5. Para exportar: Proyecto >
 
 ## Control de versiones
 Cada etapa quedó en un commit (`git log --oneline`).
+
+## Uso de IA
+
+Durante el desarrollo usé IA (Claude) como herramienta de apoyo para depurar el código. El diseño del juego, sus mecánicas y su implementación son de mi autoría.
