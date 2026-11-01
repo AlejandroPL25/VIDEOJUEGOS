@@ -58,7 +58,7 @@ func _ready() -> void:
 		quit.visible = false      # en el navegador no se puede cerrar la pestaña desde el juego
 	play_button.grab_focus()
 
-	controls_panel = _panel("CONTROLES\n\nMover: flechas izquierda / derecha (o A / D)\nSaltar: ESPACIO\nBola de fuego: X (desde la etapa Llama)\nPausa: ESC o P    Salir: Q (en pausa)\n\nPisa a los enemigos o quémalos. Junta chispas\npara evolucionar: Brasa, Llama y Fuego ardiente.")
+	controls_panel = _panel("CONTROLES\n\nMover: flechas izquierda / derecha (o A / D)\nSaltar: ESPACIO\nBola de fuego: X (desde la etapa Llama)\nPausa: ESC o P    Salir: Q (en pausa)\n\nEvita el fuego y el humo activos: quitan\nuna vida y parte de tus puntos.\nPisa a los enemigos o quémalos. Junta chispas\npara evolucionar: Brasa, Llama y Fuego ardiente.")
 	var lines := "MEJORES PUNTAJES\n\n"
 	for i in LevelData.LEVELS.size():
 		lines += "%d. %s: %d\n" % [i + 1, LevelData.LEVELS[i]["name"], Global.best_scores[i]]

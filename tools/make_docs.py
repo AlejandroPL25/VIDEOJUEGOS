@@ -300,12 +300,21 @@ def bitacora():
     para(d, "Pruebas: el bot sigue completando los 4 niveles y una prueba aparte confirma que el pisotón vence al enemigo sin quitar vidas (la prueba de contacto lateral sí lastima a Embra). "
             "Al ser mejoras fuera del GDD, las reglas de puntaje, vidas y penalización no cambiaron.", italic=True)
 
+    d.add_heading("7c. Entrada 8 · Resultados de la prueba con personas externas (v1.2)", 1)
+    para(d, "Dos participantes externos jugaron la versión v1.1 y contestaron el cuestionario. Los controles, la música, el arte y la dificultad salieron bien. "
+            "Dificultades encontradas: las primeras chispas de los niveles 3 y 4 obligaban a saltar y no se entendía que el vapor quita puntos.")
+    table(d, ["Hallazgo", "Solución implementada", "Dónde"], [
+        ("Primeras chispas de los niveles 3 y 4 solo se alcanzaban saltando", "Se bajó una fila el tramo inicial de chispas para recogerlas caminando, como en el nivel 1", "tools/make_levels.py"),
+        ("No se entiende que el fuego y el vapor quitan puntos", "Aviso corto la primera vez que Embra se acerca a una zona de fuego y nota en la pantalla de controles", "level.gd, main_menu.gd"),
+    ], widths=[2.4, 3.2, 1.2], font=8.5)
+    para(d, "Pendiente: repetir la prueba con la v1.2 y dar más identidad al juego con textos breves de historia entre niveles. Los bots volvieron a completar los 4 niveles.", italic=True)
+
     d.add_heading("8. Pendientes", 1)
     for t in ["Hacer la prueba con al menos una persona externa y llenar el reporte de pruebas.",
               "Ajustar dificultad, vidas y puntos de control según lo que se observe (plan de acción).",
               "Revisar que las fechas de esta bitácora coincidan con las que se entregarán junto al Gantt."]:
         bullet(d, t)
-    d.save(os.path.join(DOCS, "Bitacora_de_Desarrollo.docx"))
+    d.save(os.path.join(DOCS, "Bitacora_Desarrollo.docx"))
 
 
 # ================================================================== BIBLIA
@@ -430,7 +439,7 @@ def biblia():
     d.add_heading("7. Créditos y herramientas", 1)
     para(d, "Diseño, programación, arte y audio del prototipo: proyecto escolar de Universidad Tecmilenio. Herramientas: Godot 4.3, Python con Pillow para el arte, "
             "el módulo wave para el audio y Git para el control de versiones. El arte y el audio fueron creados para este proyecto.")
-    d.save(os.path.join(DOCS, "Biblia_del_Videojuego.docx"))
+    d.save(os.path.join(DOCS, "Biblia_Videojuego.docx"))
 
 
 # ================================================================== REPORTE DE PRUEBAS
@@ -538,6 +547,76 @@ def plan():
               "Exportar de nuevo el ejecutable y actualizar el README con la nueva versión."]:
         bullet(d, t)
     d.save(os.path.join(DOCS, "Plan_de_Accion.docx"))
+
+
+# ================================================================== REPORTE (una cuartilla) Y PLAN, VERSIÓN DE ENTREGA
+HALLAZGOS = [
+    ("Falta un botón de salir (comentario de los probadores)", "Agregar una forma clara de salir del juego", "Botón Salir en el menú principal y en la pausa; tecla Q", "Alta", "Cualquier persona puede cerrar el juego sin usar el sistema", "Hecho en v1.1"),
+    ("No se podía vencer a los enemigos saltándoles encima", "Pisotón con rebote", "Detectar el pisotón con la posición de los pies del cuadro anterior; vence al enemigo y rebota", "Alta", "La mayoría de los jugadores vence a su primer Rondín sin morir", "Hecho en v1.1"),
+    ("Solo había una forma de matar enemigos", "Segunda forma de ataque", "Bola de fuego con X o J, con enfriamiento y máximo en pantalla", "Media", "El jugador elige entre pisar o quemar según la situación", "Hecho en v1.1"),
+    ("El personaje no evolucionaba", "Evolución de Embra", "Tres etapas por chispas acumuladas (0, 20 y 70) con sprite propio y barra en el HUD", "Media", "Juntar chispas se siente como progreso, no solo como puntos", "Hecho en v1.1"),
+    ("Los enemigos eran todos iguales y el diseño de personajes era mejorable", "Más variedad y mejor arte", "Rondín furioso, Rondín gigante y Ceniza voladora; sprites nuevos con la paleta del GDD", "Media", "Cada nivel presenta un reto distinto sin romper las reglas del GDD", "Hecho en v1.1"),
+    ("Participante 1: las primeras chispas de los niveles 3 y 4 obligaban a saltar, a diferencia del nivel 1", "Chispas iniciales al alcance caminando", "Bajar una fila las chispas del tramo inicial de los niveles 3 y 4 en make_levels.py", "Media", "El jugador recoge las primeras chispas de cada nivel sin saltar", "Hecho en v1.2"),
+    ("Participante 2: no se entiende que el vapor (humo) quita puntos", "Explicar el peligro sin un tutorial largo", "Aviso corto la primera vez que Embra se acerca a una zona de fuego y nota en la pantalla de controles", "Alta", "El jugador evita las zonas de fuego desde la primera vez, sin perder vidas por no saberlo", "Hecho en v1.2"),
+    ("Participante 2: el juego se siente genérico, aunque con buena esencia", "Dar más identidad al juego", "Reforzar la historia de Embra (reencender la fogata) con textos breves entre niveles", "Baja", "Los jugadores describen el juego con su propia identidad, no como genérico", "Pendiente"),
+    ("Participante 2: los Rondines se entienden \"más o menos\"", "Repetir la prueba con la v1.2", "Probar con otra persona externa y comparar con esta ronda", "Alta", "Los Rondines y el fuego se entienden sin explicación", "Pendiente"),
+]
+
+
+def reporte():
+    d = new_doc(margins=0.75, base_size=9.5)
+    para(d, "Reporte de pruebas del prototipo", bold=True, size=15, color=NAVY, after=0)
+    para(d, "EMBRA: Bosque de Brasas · Universidad Tecmilenio · Actividad 3", italic=True, size=9.5, color=AMBER, after=4)
+    rich(d, [("Objetivo. ", {"b": True}), ("Comprobar con personas ajenas al equipo que se entienden los controles y las reglas del GDD (Rondines, fuego y humo) solo jugando, que la dificultad es razonable y que el juego es claro y divertido.", {})], after=3)
+    rich(d, [("Actividad realizada. ", {"b": True}), ("Dos participantes externos jugaron el ejecutable de Windows sin explicación previa y contestaron un cuestionario de 8 preguntas. No se incluyen datos personales. "
+             "Las respuestas completas están en la carpeta de evidencias (Evidencia_Respuestas.pdf).", {})], after=3)
+    rich(d, [("Resultados observados.", {"b": True})], after=1)
+    table(d, ["Pregunta", "Participante 1", "Participante 2"], [
+        ("Controles", "Se entienden y son fáciles", "Se entienden"),
+        ("Rondines y fuego sin explicación", "Sí, los entendió jugando", "Más o menos, pero lo vio normal"),
+        ("Dificultad", "Adecuada; sube poco a poco", "Adecuada"),
+        ("Se ve bien en pantalla", "Sí, se distingue todo", "Se ve muy bien"),
+        ("Sonido y música", "Acompañan bien", "La música lo mejora"),
+        ("Diversión", "Bastante divertido", "Bastante; genérico pero con buena esencia"),
+        ("Lo mejor", "Juntar chispas y pasar niveles", "Morir mientras saltaba (le dio risa)"),
+        ("Qué cambiaría primero", "Poder recoger las primeras chispas caminando en todos los niveles", "Explicar que el vapor quita puntos"),
+    ], widths=[1.6, 2.8, 2.6], font=8.5)
+    rich(d, [("Problemas detectados. ", {"b": True}),
+             ("(1) En los niveles 3 y 4 las primeras chispas estaban una fila más arriba que en el nivel 1 y obligaban a saltar. (2) No queda claro que el vapor y el fuego activos quitan puntos. "
+              "(3) Un participante percibe el juego como genérico. Además, en una primera ronda los probadores pidieron un botón de salir, matar enemigos al saltar encima, otra forma de atacar, evolución del personaje, enemigos más variados y mejor diseño de personajes.", {})], after=3)
+    rich(d, [("Conclusiones. ", {"b": True}),
+             ("Los controles, la música, el arte y la dificultad funcionan: los dos participantes los calificaron bien y se divirtieron. Los problemas son de claridad (el fuego) y de consistencia (las chispas iniciales). "
+              "Todo lo anterior se corrigió en las versiones v1.1 y v1.2 (ver Plan_Accion.pdf), salvo dar más identidad al juego y repetir la prueba con la nueva versión.", {})], after=0)
+    d.save(os.path.join(DOCS, "Reporte_Pruebas.docx"))
+
+    e = new_doc(margins=0.9, base_size=10.5)
+    para(e, "Evidencia de la prueba: respuestas de los participantes", bold=True, size=15, color=NAVY, after=2)
+    para(e, "Transcripción de las respuestas escritas del cuestionario. Sin datos personales.", italic=True, size=10, color=GREY)
+    P1 = ["Sí, los controles se entienden y son fáciles de usar.", "Sí, pude entender cómo funcionan mientras jugaba.",
+          "Sí, me pareció adecuada. A medida que avanzaba por los niveles se volvía un poco más difícil.", "Sí, se ve bien y se puede distinguir lo que está pasando durante el juego.",
+          "Sí, la música y los sonidos acompañan bien al juego.", "Me pareció bastante divertido, me gustó jugarlo y pasar los diferentes niveles.",
+          "Me gustó tener que juntar las chispas y superar los diferentes niveles.",
+          "Cambiaría que se puedan recoger las chispas que aparecen al principio de cada nivel simplemente caminando, como pasaba en el primer nivel, porque en los siguientes tenía que saltar para poder recogerlas."]
+    P2 = ["Sí, sí se entienden.", "Más o menos, pero es normal.", "Sí, es la adecuada.", "Se ve muy bien en pantalla.", "La musiquita lo hace mejor.",
+          "Bastante, es genérico pero tiene esencia buena.", "Morir mientras saltaba.", "Quizás la explicación de que esas cosas de vapor te quitan puntos."]
+    Q = ["¿Se entienden los controles?", "¿Entendiste cómo funcionan los Rondines y el fuego sin que nadie te explicara?", "¿La dificultad es adecuada?", "¿Se ve bien lo que pasa en pantalla?",
+         "¿El sonido y la música acompañan?", "¿Qué tan divertido fue?", "¿Qué fue lo mejor del juego?", "¿Qué cambiarías primero?"]
+    table(e, ["#", "Pregunta", "Participante 1", "Participante 2"], [(str(i + 1), Q[i], P1[i], P2[i]) for i in range(8)], widths=[0.3, 1.9, 2.6, 1.9], font=9)
+    e.save(os.path.join(DOCS, "Evidencia_Respuestas.docx"))
+
+
+def plan():
+    d = new_doc(margins=0.7, base_size=10)
+    para(d, "Plan de acción", bold=True, size=17, color=NAVY, after=0)
+    para(d, "EMBRA: Bosque de Brasas · cada acción se relaciona con un hallazgo de las pruebas del prototipo", italic=True, size=10, color=AMBER, after=6)
+    table(d, ["Problema detectado", "Mejora propuesta", "Acción concreta", "Prioridad", "Resultado esperado", "Estado"],
+          HALLAZGOS, widths=[1.6, 1.1, 1.7, 0.6, 1.5, 0.7], font=8.5)
+    d.add_heading("Seguimiento", 2)
+    for tx in ["Repetir la prueba con otra persona externa usando la v1.2 y comparar contra esta ronda.",
+               "Registrar cada cambio en la bitácora y en el historial de commits.",
+               "Si el fuego sigue sin entenderse, hacer más visible la fase de aviso de las zonas."]:
+        bullet(d, tx)
+    d.save(os.path.join(DOCS, "Plan_Accion.docx"))
 
 
 if __name__ == "__main__":

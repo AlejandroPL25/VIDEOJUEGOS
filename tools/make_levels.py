@@ -154,7 +154,7 @@ def nivel3():
     """Ruinas de Carbón: más Rondines y zonas de fuego sobre plataformas más estrechas."""
     L = Lvl(300)
     a = L.seg(16, 14)
-    L.put(a + 3, 13, "P"); L.sparks(range(a + 6, a + 11), 12); L.put(a + 12, 13, "T")
+    L.put(a + 3, 13, "P"); L.sparks(range(a + 6, a + 11), 13); L.put(a + 12, 13, "T")
     L.gap(3)
     b = L.plat(7, 13)                              # Rondín en plataforma pequeña
     L.put(b + 2, 12, "r"); L.sparks([b + 4, b + 5], 9)
@@ -208,7 +208,7 @@ def nivel4():
     """El Altar: combina plataformas, Rondines, zonas de fuego y vacíos en la subida final al altar."""
     L = Lvl(300)
     a = L.seg(14, 14)
-    L.put(a + 3, 13, "P"); L.sparks(range(a + 6, a + 11), 12)
+    L.put(a + 3, 13, "P"); L.sparks(range(a + 6, a + 11), 13)
     L.gap(3)
     b = L.plat(8, 13)
     L.put(b + 2, 12, "r"); L.sparks([b + 5, b + 6], 10)

@@ -23,6 +23,8 @@ var sparks_collected := 0
 var level_done := false
 var waiting_confirm := false
 var elapsed := 0.0
+var fire_positions: Array = []   # posiciones de las zonas de fuego (para el aviso de la primera vez)
+var fire_hint_shown := false
 var bot: Bot = null
 
 
@@ -238,6 +240,7 @@ func _spawn_entities() -> void:
 						fz.width_px = n * TILE
 						fz.position = Vector2(x * TILE + n * TILE / 2.0, (y + 1) * TILE)
 						add_child(fz)
+						fire_positions.append(fz.position)
 				"c":
 					var c := Checkpoint.new()
 					c.level = self
@@ -267,9 +270,21 @@ func _physics_process(delta: float) -> void:
 	if "--stomptest" in OS.get_cmdline_user_args() and elapsed > 1.6:
 		print("[TEST] Pisotón: enemigos vencidos = %d, Embra vivo = %s, vidas = %d" % [Global.kills, str(not player.dead), Global.lives])
 		get_tree().quit(0 if Global.kills > 0 and not player.dead else 1)
+	_update_fire_hint()
 	_update_music_danger()
 	if Global.autotest and elapsed > 300.0:
 		autotest_fail("Tiempo agotado (el bot no llegó a la meta)")
+
+
+## Aviso de una sola vez (hallazgo de la prueba con usuarios): explica que el fuego y el humo activos quitan vida y puntos.
+func _update_fire_hint() -> void:
+	if fire_hint_shown or player == null or player.dead or Global.autotest:
+		return
+	for fp in fire_positions:
+		if player.global_position.distance_to(fp) < 110.0:
+			fire_hint_shown = true
+			hud.show_message("¡Cuidado! El fuego y el humo activos te quitan una vida y parte de tus puntos", 3.5)
+			return
 
 
 ## La música se intensifica cuando Embra está cerca de un Rondín o de una zona de fuego activa (GDD).
